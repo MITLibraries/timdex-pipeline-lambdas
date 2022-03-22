@@ -10,7 +10,7 @@ dist-dev: ## Build docker container
 	docker build --platform linux/amd64 -t $(ECR_REGISTRY_DEV)/timdex-input-format-dev:latest \
 		-t $(ECR_REGISTRY_DEV)/timdex-input-format-dev:`git describe --always` .	
 
-publish-dev: dist ## Build, tag and push
+publish-dev: dist-dev ## Build, tag and push
 	docker login -u AWS -p $$(aws ecr get-login-password --region us-east-1) $(ECR_REGISTRY_DEV)
 	docker push $(ECR_REGISTRY_DEV)/timdex-input-format-dev:latest
 	docker push $(ECR_REGISTRY_DEV)/timdex-input-format-dev:`git describe --always`
