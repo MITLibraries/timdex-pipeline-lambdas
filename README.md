@@ -136,5 +136,7 @@ Should result in `pong` as the output.
 
 A makefile is provided with account specific "dist" "publish" and "update-format-lambda"
 
-"Update-format-lambda" is required anytime an image is published to the ECR in order for the lambda to use the updated code.  
+"Update-format-lambda" is required anytime an image is published to the ECR that contains a change to the format function in order for the format-lambda to use the updated code.  
+
+The github action updates this every push to main no matter what changes are made right now.  
 
