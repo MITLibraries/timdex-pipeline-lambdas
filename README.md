@@ -14,6 +14,7 @@ Takes an input from EventBridge and formats the event data to work throughout th
   "time": "2022-03-10T16:30:23Z",
   "oai-pmh-host": "https://YOUR-OAI-SOURCE/oai",
   "oai-metadata-format": "oai_ead",
+  "oai-set-spec": "collection_1", # Note this input field is optional
   "source": "aspace",
   "output-bucket": "YOURBUCKET",
   "elasticsearch-url": "https://YOUR-ES-URL"
@@ -27,11 +28,13 @@ Takes an input from EventBridge and formats the event data to work throughout th
   "harvest": {
     "commands": [
       "--host=https://YOUR-OAI-SOURCE/oai",
-      "--out=s3://YOURBUCKET/aspace-daily-harvest-oai_ead-2022-03-09.xml",
+      "--output-file=s3://YOURBUCKET/aspace-daily-harvest-oai_ead-2022-03-09.xml",
       "harvest",
-      "--from_date=2022-03-09",
-      "--until=2022-03-09",
-      "--format=oai_ead"
+      "--metadata-format=oai_ead",
+      "--from-date=2022-03-09",
+      "--until-date=2022-03-09",
+      "--exclude-deleted", # Note we currently always exclude deleted records
+      "--set-spec=collection_1"
     ],
     "result-file": {
       "bucket": "YOURBUCKET",
@@ -85,6 +88,7 @@ curl -XPOST "http://localhost:9000/2015-03-31/functions/function/invocations" -d
                                       "time": "2022-03-10T16:30:23Z",
                                       "oai-pmh-host": "https://YOUR-OAI-SOURCE/oai",
                                       "oai-metadata-format": "oai_ead",
+                                      "oai-set-spec": "collection_1",
                                       "source": "aspace",
                                       "output-bucket": "YOURBUCKET",
                                       "elasticsearch-url": "https://YOUR-ES-URL"
@@ -98,11 +102,13 @@ curl -XPOST "http://localhost:9000/2015-03-31/functions/function/invocations" -d
   "harvest": {
     "commands": [
       "--host=https://YOUR-OAI-SOURCE/oai",
-      "--out=s3://YOURBUCKET/aspace-daily-harvest-oai_ead-2022-03-09.xml",
+      "--output-file=s3://YOURBUCKET/aspace-daily-harvest-oai_ead-2022-03-09.xml",
       "harvest",
-      "--from_date=2022-03-09",
-      "--until=2022-03-09",
-      "--format=oai_ead"
+      "--metadata-format=oai_ead",
+      "--from-date=2022-03-09",
+      "--until-date=2022-03-09",
+      "--exclude-deleted",
+      "--set-spec=collection_1"
     ],
     "result-file": {
       "bucket": "YOURBUCKET",
@@ -134,7 +140,7 @@ Should result in `pong` as the output.
 
 ### Makefile Use for AWS
 
-A makefile is provided with account specific "dist" "publish" and "update-format-lambda"
+A makefile is provided with account specific "dist" "publish" and "update-format-lambda" commands.
 
 "Update-format-lambda" is required anytime an image is published to the ECR that contains a change to the format function in order for the format-lambda to use the updated code.  
 
