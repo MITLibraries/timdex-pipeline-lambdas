@@ -11,6 +11,7 @@ Takes an input from EventBridge and formats the event data to work throughout th
 ```json
 {
   "harvest-type": "update",
+  "starting-step": "harvest",
   "time": "2022-03-10T16:30:23Z",
   "oai-pmh-host": "https://YOUR-OAI-SOURCE/oai",
   "oai-metadata-format": "oai_ead",
@@ -25,6 +26,7 @@ Takes an input from EventBridge and formats the event data to work throughout th
 
 ```json
 {
+  "starting-step": "harvest",
   "harvest": {
     "commands": [
       "--host=https://YOUR-OAI-SOURCE/oai",
@@ -41,7 +43,19 @@ Takes an input from EventBridge and formats the event data to work throughout th
       "key": "aspace-daily-harvest-oai_ead-2022-03-09.xml"
     }
   },
-  "ingest": {
+  "transform": {
+    "commands": [
+      "--input-file=s3://YOURBUCKET/aspace-daily-harvest-oai_ead-"
+      "2022-03-09.xml",
+      "--output-file=s3://YOURBUCKET/aspace-daily-timdex-json-2022-03-09.json",
+      "--source=aspace"
+    ],
+    "result-file": {
+      "bucket": "YOURBUCKET",
+      "key": "aspace-daily-timdex-json-2022-03-09.json",
+    }
+  },
+  "load": {
     "commands": [
       "--url=https://YOUR-ES-URL",
       "ingest",
@@ -85,6 +99,7 @@ docker run -p 9000:8080 timdex-pipeline-lambdas:latest
 ```bash
 curl -XPOST "http://localhost:9000/2015-03-31/functions/function/invocations" -d '{
                                       "harvest-type": "update",
+                                      "starting-step": "harvest",
                                       "time": "2022-03-10T16:30:23Z",
                                       "oai-pmh-host": "https://YOUR-OAI-SOURCE/oai",
                                       "oai-metadata-format": "oai_ead",
@@ -99,6 +114,7 @@ curl -XPOST "http://localhost:9000/2015-03-31/functions/function/invocations" -d
 
 ```json
 {
+  "starting-step": "harvest",
   "harvest": {
     "commands": [
       "--host=https://YOUR-OAI-SOURCE/oai",
@@ -115,7 +131,19 @@ curl -XPOST "http://localhost:9000/2015-03-31/functions/function/invocations" -d
       "key": "aspace-daily-harvest-oai_ead-2022-03-09.xml"
     }
   },
-  "ingest": {
+  "transform": {
+    "commands": [
+      "--input-file=s3://YOURBUCKET/aspace-daily-harvest-oai_ead-"
+      "2022-03-09.xml",
+      "--output-file=s3://YOURBUCKET/aspace-daily-timdex-json-2022-03-09.json",
+      "--source=aspace"
+    ],
+    "result-file": {
+      "bucket": "YOURBUCKET",
+      "key": "aspace-daily-timdex-json-2022-03-09.json",
+    }
+  },
+  "load": {
     "commands": [
       "--url=https://YOUR-ES-URL",
       "ingest",
@@ -138,7 +166,7 @@ curl -XPOST "http://localhost:9000/2015-03-31/functions/function/invocations" -d
 Should result in `pong` as the output.
 
 
-### Makefile Use for AWS
+## Makefile Use for AWS
 
 A makefile is provided with account specific "dist" "publish" and "update-format-lambda" commands.
 
@@ -146,3 +174,8 @@ A makefile is provided with account specific "dist" "publish" and "update-format
 
 The github action updates this every push to main no matter what changes are made right now.  
 
+
+## Running Unit Tests
+```bash
+python -m unittest
+```

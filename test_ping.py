@@ -1,9 +1,11 @@
-import ping
+import unittest
+
+from ping import lambda_handler
 
 
-def test_ping():
-    assert ping.lambda_handler({}, {}) == "pong"
+class TestFormatLambdaHandler(unittest.TestCase):
+    def test_ping(self):
+        self.assertEqual("pong", lambda_handler({}, {}))
 
-
-def test_ping_always_pongs():
-    assert ping.lambda_handler({'hallo': 'cheese'}, {}) == "pong"
+    def test_ping_always_pongs(self):
+        self.assertEqual("pong", lambda_handler({'hallo': 'cheese'}, {}))
