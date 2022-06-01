@@ -35,5 +35,4 @@ jobs:
       - name: Push image
         run: make publish-dev
       - name: Update format-lambda
-        run: make update-format-lambda-dev
-
+        run: make update-lambda-dev
