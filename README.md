@@ -165,7 +165,6 @@ curl -XPOST "http://localhost:9000/2015-03-31/functions/function/invocations" -d
 
 Should result in `pong` as the output.
 
-
 ## Makefile Use for AWS
 
 A makefile is provided with account specific "dist" "publish" and "update-format-lambda" commands.
