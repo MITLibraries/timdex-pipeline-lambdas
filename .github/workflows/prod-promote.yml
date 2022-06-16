@@ -1,0 +1,20 @@
+### This is the Terraform-generated prod-promote.yml workflow for the timdex-format-prod app repository ###
+name: Prod Promote Lambda Container
+on:
+  workflow_dispatch:
+  release:
+    types: [published]
+
+jobs:
+  deploy:
+    name: Prod Promote Lambda Container
+    uses: mitlibraries/.github/.github/workflows/lambda-shared-promote-prod.yml@main
+    secrets: inherit
+    with:
+      AWS_REGION: "us-east-1"
+      GHA_ROLE_STAGE: timdex-pipeline-lambdas-gha-stage
+      GHA_ROLE_PROD: timdex-pipeline-lambdas-gha-prod
+      ECR_STAGE: "timdex-pipeline-lambdas-stage"
+      ECR_PROD: "timdex-pipeline-lambdas-prod"
+      FUNCTION: "timdex-format-prod"
+ 
