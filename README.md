@@ -138,7 +138,7 @@ make dist-dev
 ### Run the default handler for the container
 
 ```bash
-docker run -p 9000:8080 timdex-pipeline-lambdas-dev:latest
+docker run -e WORKSPACE=dev -p 9000:8080 timdex-pipeline-lambdas-dev:latest
 ```
 
 ### POST to the container
