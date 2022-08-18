@@ -2,6 +2,11 @@
 
 TIMDEX Pipeline Lambdas is a collection of lambdas used in the TIMDEX Ingest Pipeline.
 
+## Required env variables
+
+- `WORKSPACE`: set to `dev` for local development, set by Terraform on AWS.
+- `SENTRY_DSN`: only needed in production.
+
 ## Format Input Handler
 
 Takes input JSON (usually from EventBridge although it can be passed to a manual Step Function execution), and returns reformatted JSON matching the expected input data needed for the remaining steps in the TIMDEX pipeline Step Function.
@@ -133,7 +138,7 @@ make dist-dev
 ### Run the default handler for the container
 
 ```bash
-docker run -p 9000:8080 timdex-pipeline-lambdas-dev:latest
+docker run -e WORKSPACE=dev -p 9000:8080 timdex-pipeline-lambdas-dev:latest
 ```
 
 ### POST to the container

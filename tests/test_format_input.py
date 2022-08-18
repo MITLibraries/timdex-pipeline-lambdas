@@ -1,9 +1,34 @@
+from importlib import reload
+
 import pytest
 
 from lambdas import format_input
 
 
+# format_input module tests
+def test_format_input_configures_sentry_if_dsn_present(caplog, monkeypatch):
+    monkeypatch.setenv("SENTRY_DSN", "https://1234567890@00000.ingest.sentry.io/123456")
+    reload(format_input)
+    assert (
+        "Sentry DSN found, exceptions will be sent to Sentry with env=test"
+        in caplog.text
+    )
+
+
+def test_format_input_doesnt_configure_sentry_if_dsn_not_present(caplog, monkeypatch):
+    monkeypatch.delenv("SENTRY_DSN", raising=False)
+    reload(format_input)
+    assert "No Sentry DSN found, exceptions will not be sent to Sentry" in caplog.text
+
+
 # lambda_handler() tests
+def test_lambda_handler_missing_workspace_env_raises_error(monkeypatch):
+    monkeypatch.delenv("WORKSPACE", raising=False)
+    with pytest.raises(RuntimeError) as error:
+        format_input.lambda_handler({}, {})
+    assert "Required env variable WORKSPACE is not set" in str(error)
+
+
 def test_lambda_handler_with_starting_step_load():
     event = {
         "harvest-type": "full",
