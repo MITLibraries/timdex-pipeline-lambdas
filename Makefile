@@ -28,14 +28,17 @@ test: ## Run tests and print a coverage report
 coveralls: test
 	pipenv run coverage lcov -o ./coverage/lcov.info
 
-### Code qualit and safety commands ###
-lint: bandit black pylama safety ## Run linting, code quality, and safety checks
+### Code quality and safety commands ###
+lint: bandit black mypy pylama safety ## Run linting, code quality, and safety checks
 
 bandit:
 	pipenv run bandit -r lambdas
 
 black:
 	pipenv run black --check --diff .
+
+mypy:
+	pipenv run mypy lambdas
 
 pylama:
 	pipenv run pylama --options setup.cfg
