@@ -19,9 +19,24 @@ def extract_file_from_source_bucket_to_target_bucket(
     target_file_key: str,
 ) -> None:
     """Extract a single tarred file from one s3 bucket to another s3 bucket."""
-    with smart_open.open(f"s3://{source_bucket}/{source_file_key}", "rb") as tar_file:
+    transport_params = {"client": s3_client}
+    with smart_open.open(
+        f"s3://{source_bucket}/{source_file_key}",
+        "rb",
+        transport_params=transport_params,
+    ) as tar_file:
+        logger.debug("Extracting file '%s'", source_file_key)
         file_contents = next(extract_tarfile(tar_file))
-        s3_client.upload_fileobj(file_contents, target_bucket, target_file_key)
+        with smart_open.open(
+            f"s3://{target_bucket}/{target_file_key}",
+            "wb",
+            transport_params=transport_params,
+        ) as out_file:
+            while True:
+                chunk = file_contents.read(8 * 1024 * 1024)
+                if not chunk:
+                    break
+                out_file.write(chunk)
         logger.debug(
             "File '%s' extracted from bucket '%s' and uploaded to bucket '%s' with new "
             "file name %s",
