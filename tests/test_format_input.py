@@ -1,544 +1,189 @@
-from importlib import reload
-
-import pytest
-
 from lambdas import format_input
 
 
-# format_input module tests
-def test_format_input_configures_sentry_if_dsn_present(caplog, monkeypatch):
-    monkeypatch.setenv("SENTRY_DSN", "https://1234567890@00000.ingest.sentry.io/123456")
-    reload(format_input)
-    assert (
-        "Sentry DSN found, exceptions will be sent to Sentry with env=test"
-        in caplog.text
-    )
-
-
-def test_format_input_doesnt_configure_sentry_if_dsn_not_present(caplog, monkeypatch):
-    monkeypatch.delenv("SENTRY_DSN", raising=False)
-    reload(format_input)
-    assert "No Sentry DSN found, exceptions will not be sent to Sentry" in caplog.text
-
-
-# lambda_handler() tests
-def test_lambda_handler_missing_workspace_env_raises_error(monkeypatch):
-    monkeypatch.delenv("WORKSPACE", raising=False)
-    with pytest.raises(RuntimeError) as error:
-        format_input.lambda_handler({}, {})
-    assert "Required env variable WORKSPACE is not set" in str(error)
-
-
-def test_lambda_handler_with_starting_step_load():
+def test_lambda_handler_with_next_step_extract():
     event = {
-        "harvest-type": "full",
-        "opensearch-url": "https://example.com/opensearch",
-        "output-bucket": "test-bucket",
-        "starting-step": "load",
-        "source": "test-source",
-        "time": "2022-01-02T12:13:14Z",
-    }
-    output = format_input.lambda_handler(event, {})
-    assert output == {
-        "starting-step": "load",
-        "load": {
-            "commands": [
-                "--url=https://example.com/opensearch",
-                "ingest",
-                "--source=test-source",
-                "--new",
-                "--auto",
-                "s3://test-bucket/test-source-full-transformed-records-2022-01-01.json",
-            ]
-        },
-    }
-
-
-def test_lambda_handler_with_starting_step_transform():
-    event = {
-        "harvest-type": "full",
-        "opensearch-url": "https://example.com/opensearch",
-        "output-bucket": "test-bucket",
-        "starting-step": "transform",
-        "source": "test-source",
-        "time": "2022-01-02T12:13:14Z",
-        "index-prefix": "rdi",
-    }
-    output = format_input.lambda_handler(event, {})
-    assert output == {
-        "starting-step": "transform",
-        "load": {
-            "commands": [
-                "--url=https://example.com/opensearch",
-                "ingest",
-                "--source=rdi-test-source",
-                "--new",
-                "s3://test-bucket/test-source-full-transformed-records-2022-01-01.json",
-            ]
-        },
-        "transform": {
-            "commands": [
-                (
-                    "--input-file=s3://test-bucket/"
-                    "test-source-full-harvested-records-2022-01-01.xml"
-                ),
-                (
-                    "--output-file=s3://test-bucket/"
-                    "test-source-full-transformed-records-2022-01-01.json"
-                ),
-                "--source=test-source",
-            ],
-            "result-file": {
-                "bucket": "test-bucket",
-                "key": "test-source-full-transformed-records-2022-01-01.json",
-            },
-        },
-    }
-
-
-def test_lambda_handler_with_starting_step_harvest():
-    event = {
-        "harvest-type": "daily",
-        "opensearch-url": "https://example.com/opensearch",
-        "output-bucket": "test-bucket",
-        "starting-step": "harvest",
-        "source": "test-source",
-        "time": "2022-01-02T12:13:14Z",
+        "run-date": "2022-01-02T12:13:14Z",
+        "run-type": "daily",
+        "next-step": "extract",
+        "source": "testsource",
         "oai-pmh-host": "https://example.com/oai",
         "oai-metadata-format": "oai_dc",
-        "oai-set-spec": "Collection_1",
     }
     output = format_input.lambda_handler(event, {})
     assert output == {
-        "starting-step": "harvest",
-        "load": {
-            "commands": [
-                "--url=https://example.com/opensearch",
-                "ingest",
-                "--source=test-source",
-                "s3://test-bucket/test-source-daily-transformed-records-2022-01-01.json",
-            ]
-        },
-        "transform": {
-            "commands": [
-                (
-                    "--input-file=s3://test-bucket/"
-                    "test-source-daily-harvested-records-2022-01-01.xml"
-                ),
-                (
-                    "--output-file=s3://test-bucket/"
-                    "test-source-daily-transformed-records-2022-01-01.json"
-                ),
-                "--source=test-source",
-            ],
-            "result-file": {
-                "bucket": "test-bucket",
-                "key": "test-source-daily-transformed-records-2022-01-01.json",
-            },
-        },
-        "harvest": {
-            "commands": [
+        "run-date": "2022-01-02",
+        "run-type": "daily",
+        "source": "testsource",
+        "verbose": False,
+        "next-step": "transform",
+        "extract": {
+            "extract-command": [
                 "--host=https://example.com/oai",
-                "--output-file=s3://test-bucket/"
-                "test-source-daily-harvested-records-2022-01-01.xml",
+                "--output-file=s3://test-timdex-bucket/testsource/"
+                "testsource-2022-01-02-daily-extracted-records-to-index.xml",
                 "harvest",
                 "--metadata-format=oai_dc",
-                "--set-spec=Collection_1",
                 "--from-date=2022-01-01",
-                "--until-date=2022-01-01",
-                "--exclude-deleted",
-            ],
-            "result-file": {
-                "bucket": "test-bucket",
-                "key": "test-source-daily-harvested-records-2022-01-01.xml",
-            },
+            ]
         },
     }
 
 
-# validate_input() tests
-def test_validate_input_missing_required_field_raises_error():
-    event = {
-        "harvest-type": "full",
-        "opensearch-url": "https://example.com/opensearch",
-        "output-bucket": "test-bucket",
-        "starting-step": "transform",
-        "source": "test-source",
-    }
-    with pytest.raises(ValueError) as error:
-        format_input.validate_input(event)
-    assert "Input must include all required fields. Missing fields: ['time']" in str(
-        error.value
+def test_lambda_handler_with_next_step_transform_files_present(s3_client):
+    s3_client.put_object(
+        Bucket="test-timdex-bucket",
+        Key="testsource/testsource-2022-01-02-daily-extracted-records-to-index.xml",
+        Body="I am a file",
     )
-
-
-def test_validate_input_with_invalid_starting_step_raises_error():
     event = {
-        "harvest-type": "full",
-        "opensearch-url": "https://example.com/opensearch",
-        "output-bucket": "test-bucket",
-        "starting-step": "wrong",
-        "source": "test-source",
-        "time": "2022-01-02T12:13:14Z",
-    }
-    with pytest.raises(ValueError) as error:
-        format_input.validate_input(event)
-    assert (
-        "Input 'starting-step' value must be one of: "
-        f"{format_input.VALID_STARTING_STEPS}. Value provided was 'wrong'"
-        in str(error.value)
-    )
-
-
-def test_validate_input_with_invalid_harvest_type_raises_error():
-    event = {
-        "harvest-type": "wrong",
-        "opensearch-url": "https://example.com/opensearch",
-        "output-bucket": "test-bucket",
-        "starting-step": "load",
-        "source": "test-source",
-        "time": "2022-01-02T12:13:14Z",
-    }
-    with pytest.raises(ValueError) as error:
-        format_input.validate_input(event)
-    assert (
-        f"Input 'harvest-type' value must be one of: {format_input.VALID_HARVEST_TYPES}. "
-        "Value provided was 'wrong'" in str(error.value)
-    )
-
-
-def test_validate_input_with_missing_harvest_fields_raises_error():
-    event = {
-        "harvest-type": "full",
-        "opensearch-url": "https://example.com/opensearch",
-        "output-bucket": "test-bucket",
-        "starting-step": "harvest",
-        "source": "test-source",
-        "time": "2022-01-02:T12:13:14Z",
-        "oai-pmh-host": "https://example.com/oai",
-    }
-    with pytest.raises(ValueError) as error:
-        format_input.validate_input(event)
-    assert (
-        "Input must include all required harvest fields when starting with "
-        "harvest step. Missing fields: ['oai-metadata-format']" in str(error.value)
-    )
-
-
-def test_validate_input_with_all_required_fields_returns_none():
-    event = {
-        "harvest-type": "full",
-        "opensearch-url": "https://example.com/opensearch",
-        "output-bucket": "test-bucket",
-        "starting-step": "transform",
-        "source": "test-source",
-        "time": "2022-01-02T12:13:14Z",
-    }
-    assert format_input.validate_input(event) is None
-
-
-def test_validate_input_with_all_required_harvest_fields_returns_none():
-    event = {
-        "harvest-type": "daily",
-        "opensearch-url": "https://example.com/opensearch",
-        "output-bucket": "test-bucket",
-        "starting-step": "harvest",
-        "source": "test-source",
-        "time": "2022-01-02T12:13:14Z",
-        "oai-pmh-host": "https://example.com/oai",
-        "oai-metadata-format": "oai_dc",
-    }
-    assert format_input.validate_input(event) is None
-
-
-# generate_harvest_end_date_string() tests
-def test_generate_harvest_end_date_string_with_short_format_returns_string():
-    date_string = format_input.generate_harvest_end_date_string("2022-01-02")
-    assert date_string == "2022-01-01"
-
-
-def test_generate_harvest_end_date_string_with_long_format_returns_string():
-    date_string = format_input.generate_harvest_end_date_string("2022-01-02T12:13:14Z")
-    assert date_string == "2022-01-01"
-
-
-def test_generate_harvest_end_date_string_with_invalid_format_raises_error():
-    with pytest.raises(ValueError) as error:
-        format_input.generate_harvest_end_date_string("2022")
-    assert (
-        "Input 'time' value must be one of the following date string formats: "
-        f"{format_input.VALID_DATE_FORMATS}. Value provided was '2022'"
-        in str(error.value)
-    )
-
-
-# generate_load_input() tests
-def test_generate_load_input_daily_with_required_fields_only():
-    event = {
-        "harvest-type": "daily",
-        "opensearch-url": "https://example.com/opensearch",
-        "output-bucket": "test-bucket",
-        "starting-step": "load",
-        "source": "test-source",
-        "time": "2022-01-02T12:13:14Z",
-    }
-    output = format_input.generate_load_input(
-        event, "daily", "test-source-daily-transformed-records-2022-01-01.json"
-    )
-    assert output == {
-        "commands": [
-            "--url=https://example.com/opensearch",
-            "ingest",
-            "--source=test-source",
-            "s3://test-bucket/test-source-daily-transformed-records-2022-01-01.json",
-        ]
-    }
-
-
-def test_generate_load_input_daily_with_relevant_optional_fields():
-    event = {
-        "harvest-type": "daily",
-        "opensearch-url": "https://example.com/opensearch",
-        "output-bucket": "test-bucket",
-        "starting-step": "load",
-        "source": "test-source",
-        "time": "2022-01-02T12:13:14Z",
-        "index-prefix": "rdi",
-    }
-    output = format_input.generate_load_input(
-        event, "daily", "test-source-daily-transformed-records-2022-01-01.json"
-    )
-    assert output == {
-        "commands": [
-            "--url=https://example.com/opensearch",
-            "ingest",
-            "--source=rdi-test-source",
-            "s3://test-bucket/test-source-daily-transformed-records-2022-01-01.json",
-        ]
-    }
-
-
-def test_generate_load_input_full_with_required_fields_only():
-    event = {
-        "harvest-type": "full",
-        "opensearch-url": "https://example.com/opensearch",
-        "output-bucket": "test-bucket",
-        "starting-step": "load",
-        "source": "test-source",
-        "time": "2022-01-02T12:13:14Z",
-    }
-    output = format_input.generate_load_input(
-        event, "full", "test-source-full-transformed-records-2022-01-01.json"
-    )
-    assert output == {
-        "commands": [
-            "--url=https://example.com/opensearch",
-            "ingest",
-            "--source=test-source",
-            "--new",
-            "--auto",
-            "s3://test-bucket/test-source-full-transformed-records-2022-01-01.json",
-        ]
-    }
-
-
-def test_generate_load_input_full_with_relevant_optional_fields():
-    event = {
-        "harvest-type": "full",
-        "opensearch-url": "https://example.com/opensearch",
-        "output-bucket": "test-bucket",
-        "starting-step": "load",
-        "source": "test-source",
-        "time": "2022-01-02T12:13:14Z",
-        "index-prefix": "rdi",
-    }
-    output = format_input.generate_load_input(
-        event, "full", "test-source-full-transformed-records-2022-01-01.json"
-    )
-    assert output == {
-        "commands": [
-            "--url=https://example.com/opensearch",
-            "ingest",
-            "--source=rdi-test-source",
-            "--new",
-            "s3://test-bucket/test-source-full-transformed-records-2022-01-01.json",
-        ]
-    }
-
-
-# generate_transform_input() tests
-def test_generate_transform_input_with_required_fields_only():
-    event = {
-        "harvest-type": "full",
-        "opensearch-url": "https://example.com/opensearch",
-        "output-bucket": "test-bucket",
-        "starting-step": "transform",
-        "source": "test-source",
-        "time": "2022-01-02T12:13:14Z",
-    }
-    output = format_input.generate_transform_input(
-        event,
-        "test-source-full-harvested-records-2022-01-01.xml",
-        "test-source-full-transformed-records-2022-01-01.json",
-    )
-    assert output == {
-        "commands": [
-            (
-                "--input-file=s3://test-bucket/"
-                "test-source-full-harvested-records-2022-01-01.xml"
-            ),
-            (
-                "--output-file=s3://test-bucket/"
-                "test-source-full-transformed-records-2022-01-01.json"
-            ),
-            "--source=test-source",
-        ],
-        "result-file": {
-            "bucket": "test-bucket",
-            "key": "test-source-full-transformed-records-2022-01-01.json",
-        },
-    }
-
-
-def test_generate_transform_input_with_relevant_optional_fields():
-    event = {
-        "harvest-type": "daily",
-        "opensearch-url": "https://example.com/opensearch",
-        "output-bucket": "test-bucket",
-        "starting-step": "transform",
-        "source": "test-source",
-        "time": "2022-01-02T12:13:14Z",
+        "run-date": "2022-01-02T12:13:14Z",
+        "run-type": "daily",
+        "next-step": "transform",
+        "source": "testsource",
         "verbose": "true",
     }
-    output = format_input.generate_transform_input(
-        event,
-        "test-source-daily-harvested-records-2022-01-01.xml",
-        "test-source-daily-transformed-records-2022-01-01.json",
-    )
-    assert output == {
-        "commands": [
-            (
-                "--input-file=s3://test-bucket/"
-                "test-source-daily-harvested-records-2022-01-01.xml"
-            ),
-            (
-                "--output-file=s3://test-bucket/"
-                "test-source-daily-transformed-records-2022-01-01.json"
-            ),
-            "--source=test-source",
-            "--verbose",
-        ],
-        "result-file": {
-            "bucket": "test-bucket",
-            "key": "test-source-daily-transformed-records-2022-01-01.json",
+    assert format_input.lambda_handler(event, {}) == {
+        "run-date": "2022-01-02",
+        "run-type": "daily",
+        "source": "testsource",
+        "verbose": True,
+        "next-step": "load",
+        "transform": {
+            "files-to-transform": [
+                {
+                    "transform-command": [
+                        "--input-file=s3://test-timdex-bucket/testsource/"
+                        "testsource-2022-01-02-daily-extracted-records-to-index.xml",
+                        "--output-file=s3://test-timdex-bucket/testsource/"
+                        "testsource-2022-01-02-daily-transformed-records-to-index.json",
+                        "--source=testsource",
+                        "--verbose",
+                    ]
+                }
+            ]
         },
     }
 
 
-# generate_harvest_input() tests
-def test_generate_harvest_input_full_with_required_fields_only():
+def test_lambda_handler_with_next_step_transform_alma_files_present():
     event = {
-        "harvest-type": "full",
-        "opensearch-url": "https://example.com/opensearch",
-        "output-bucket": "test-bucket",
-        "starting-step": "harvest",
-        "source": "test-source",
-        "time": "2022-01-02T12:13:14Z",
-        "oai-pmh-host": "https://example.com/oai",
-        "oai-metadata-format": "oai_dc",
+        "run-date": "2022-09-12",
+        "run-type": "daily",
+        "next-step": "transform",
+        "source": "alma",
+        "verbose": "False",
     }
-    output = format_input.generate_harvest_input(
-        event,
-        "2022-01-01",
-        "full",
-        "test-source-full-harvested-records-2022-01-01.xml",
-    )
-    assert output == {
-        "commands": [
-            "--host=https://example.com/oai",
-            "--output-file=s3://test-bucket/"
-            "test-source-full-harvested-records-2022-01-01.xml",
-            "harvest",
-            "--metadata-format=oai_dc",
-            "--until-date=2022-01-01",
-            "--exclude-deleted",
-        ],
-        "result-file": {
-            "bucket": "test-bucket",
-            "key": "test-source-full-harvested-records-2022-01-01.xml",
+    assert format_input.lambda_handler(event, {}) == {
+        "run-date": "2022-09-12",
+        "run-type": "daily",
+        "source": "alma",
+        "verbose": False,
+        "next-step": "load",
+        "transform": {
+            "files-to-transform": [
+                {
+                    "transform-command": [
+                        "--input-file=s3://test-timdex-bucket/alma/"
+                        "alma-2022-09-12-daily-extracted-records-to-index_01.xml",
+                        "--output-file=s3://test-timdex-bucket/alma/"
+                        "alma-2022-09-12-daily-transformed-records-to-index_01.json",
+                        "--source=alma",
+                    ]
+                },
+                {
+                    "transform-command": [
+                        "--input-file=s3://test-timdex-bucket/alma/"
+                        "alma-2022-09-12-daily-extracted-records-to-index_02.xml",
+                        "--output-file=s3://test-timdex-bucket/alma/"
+                        "alma-2022-09-12-daily-transformed-records-to-index_02.json",
+                        "--source=alma",
+                    ]
+                },
+            ]
         },
     }
 
 
-def test_generate_harvest_input_daily_with_relevant_optional_fields():
+def test_lambda_handler_with_next_step_transform_no_files_present_alma():
     event = {
-        "harvest-type": "daily",
-        "opensearch-url": "https://example.com/opensearch",
-        "output-bucket": "test-bucket",
-        "starting-step": "harvest",
-        "source": "test-source",
-        "time": "2022-01-02T12:13:14Z",
-        "oai-pmh-host": "https://example.com/oai",
-        "oai-metadata-format": "oai_dc",
-        "oai-set-spec": "Collection_1",
-        "verbose": "true",
+        "run-date": "2022-01-02",
+        "run-type": "daily",
+        "next-step": "transform",
+        "source": "alma",
     }
-    output = format_input.generate_harvest_input(
-        event,
-        "2022-01-01",
-        "daily",
-        "test-source-daily-harvested-records-2022-01-01.xml",
-    )
-    assert output == {
-        "commands": [
-            "--host=https://example.com/oai",
-            "--output-file=s3://test-bucket/"
-            "test-source-daily-harvested-records-2022-01-01.xml",
-            "--verbose",
-            "harvest",
-            "--metadata-format=oai_dc",
-            "--set-spec=Collection_1",
-            "--from-date=2022-01-01",
-            "--until-date=2022-01-01",
-            "--exclude-deleted",
-        ],
-        "result-file": {
-            "bucket": "test-bucket",
-            "key": "test-source-daily-harvested-records-2022-01-01.xml",
-        },
+    assert format_input.lambda_handler(event, {}) == {
+        "failure": "There were no transformed files present in the TIMDEX S3 bucket "
+        "for the provided date and source, something likely went wrong."
     }
 
 
-def test_generate_harvest_input_with_aspace_source_inserts_method():
+def test_lambda_handler_with_next_step_transform_no_files_present_full():
     event = {
-        "harvest-type": "full",
-        "opensearch-url": "https://example.com/opensearch",
-        "output-bucket": "test-bucket",
-        "starting-step": "harvest",
-        "source": "aspace",
-        "time": "2022-01-02T12:13:14Z",
-        "oai-pmh-host": "https://example.com/oai",
-        "oai-metadata-format": "oai_ead",
+        "run-date": "2022-01-02T12:13:14Z",
+        "run-type": "full",
+        "next-step": "transform",
+        "source": "testsource",
     }
-    output = format_input.generate_harvest_input(
-        event,
-        "2022-01-01",
-        "full",
-        "aspace-full-harvested-records-2022-01-01.xml",
+    assert format_input.lambda_handler(event, {}) == {
+        "failure": "There were no transformed files present in the TIMDEX S3 bucket "
+        "for the provided date and source, something likely went wrong."
+    }
+
+
+def test_lambda_handler_with_next_step_transform_no_files_present_daily():
+    event = {
+        "run-date": "2022-01-02T12:13:14Z",
+        "run-type": "daily",
+        "next-step": "transform",
+        "source": "testsource",
+    }
+    assert format_input.lambda_handler(event, {}) == {
+        "success": "There were no daily new/updated/deleted records to harvest."
+    }
+
+
+def test_lambda_handler_with_next_step_load_files_present(s3_client):
+    s3_client.put_object(
+        Bucket="test-timdex-bucket",
+        Key="testsource/testsource-2022-01-02-daily-transformed-records-to-index.json",
+        Body="I am a file",
     )
-    assert output == {
-        "commands": [
-            "--host=https://example.com/oai",
-            "--output-file=s3://test-bucket/"
-            "aspace-full-harvested-records-2022-01-01.xml",
-            "harvest",
-            "--method=get",
-            "--metadata-format=oai_ead",
-            "--until-date=2022-01-01",
-            "--exclude-deleted",
-        ],
-        "result-file": {
-            "bucket": "test-bucket",
-            "key": "aspace-full-harvested-records-2022-01-01.xml",
+    event = {
+        "run-date": "2022-01-02T12:13:14Z",
+        "run-type": "daily",
+        "next-step": "load",
+        "source": "testsource",
+    }
+    assert format_input.lambda_handler(event, {}) == {
+        "run-date": "2022-01-02",
+        "run-type": "daily",
+        "source": "testsource",
+        "verbose": False,
+        "load": {
+            "files-to-index": [
+                {
+                    "load-command": [
+                        "bulk-index",
+                        "--source",
+                        "testsource",
+                        "s3://test-timdex-bucket/testsource/"
+                        "testsource-2022-01-02-daily-transformed-records-to-index.json",
+                    ]
+                },
+            ]
         },
+    }
+
+
+def test_lambda_handler_with_next_step_load_no_files_present():
+    event = {
+        "run-date": "2022-01-02",
+        "run-type": "daily",
+        "next-step": "load",
+        "source": "testsource",
+    }
+    assert format_input.lambda_handler(event, {}) == {
+        "failure": "There were no transformed files present in the TIMDEX S3 bucket "
+        "for the provided date and source, something likely went wrong."
     }

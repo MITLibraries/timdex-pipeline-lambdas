@@ -4,8 +4,9 @@ TIMDEX Pipeline Lambdas is a collection of lambdas used in the TIMDEX Ingest Pip
 
 ## Required env variables
 
+- `TIMDEX_ALMA_EXPORT_BUCKET_ID`: the name of the Alma SFTP export S3 bucket, set by Terraform on AWS.
+- `TIMDEX_S3_EXTRACT_BUCKET_ID`: the name of the TIMDEX pipeline S3 bucket, set by Terraform on AWS.
 - `WORKSPACE`: set to `dev` for local development, set by Terraform on AWS.
-- `SENTRY_DSN`: only needed in production.
 
 ## Format Input Handler
 
@@ -15,90 +16,60 @@ Takes input JSON (usually from EventBridge although it can be passed to a manual
 
 #### Required fields
 
-- `harvest-type`: Must be one of `["full", "daily"]`. The provided harvest type is used in the input/output file naming scheme for all steps of the pipeline. It also determines the harvest logic as follows:
-  - `full`: Perform a full harvest of all records from the provided `oai-pmh-host`.
-  - `daily`: Harvest only records added to or updated in the provided `oai-pmh-host` during the previous calendar day. Previous day is relative to the provided `time` field date, *not* the date this process is run, although those will be equivalent in most cases.
-- `opensearch-url`: The full URL for the OpenSearch instance to ingest records into during the load step.
-- `output-bucket`: The name of the S3 bucket (just the name, not the URI) in which to retrieve and deposit input/output files.
-- `starting-step`: Must be one of `["harvest", "transform", "load"]`:
-  - `harvest`: Start the pipeline at the harvest step and continue through transform and load.
-  - `transform`: Skip harvest and start the pipeline at the transform step, using existing harvest output file matching the provided source, harvest type, and time, and continue through load.
-  - `load`: Skip harvest and transform steps and start the pipeline at the load step, using existing transform output file matching the provided source, harvest type, and time.
+- `next-step`: The next step of the pipeline to be performed, must be one of `["extract", "transform", "load"]`. Determines which task run commands will be generated as output from the format lambda.
+- `run-date`: Must be in one of the formats ["yyyy-mm-dd", "yyyy-mm-ddThh:mm:ssZ"]. The provided date is used in the input/output file naming scheme for all steps of the pipeline.
+- `run-type`: Must be one of `["full", "daily"]`. The provided run type is used in the input/output file naming scheme for all steps of the pipeline. It also determines logic for both the OAI-PMH harvest and load commands as follows:
+  - `full`: Perform a full harvest of all records from the provided `oai-pmh-host`. During load, create a new OpenSearch index, load all records into it, and then promote the new index.
+  - `daily`: Harvest only records added to or updated in the provided `oai-pmh-host` since the previous calendar day. Previous day is relative to the provided `run-date` field date, *not* the date this process is run, although those will be equivalent in most cases. During load, index/delete records into the current production OpenSearch index for the source.
 - `source`: Short name for the source repository, must match one of the source names configured for use in transform and load apps. The provided source is passed to the transform and load app CLI commands, and is also used in the input/output file naming scheme for all steps of the pipeline.
-  - *Note*: if provided source is "aspace", a method option is passed to the harvest command (if starting at the harvest step) to ensure that we use the "get" harvest method instead of the default "list" method used for all other sources. This is required because ArchivesSpace inexplicably provides incomplete oai-pmh responses using the "list" method.
-- `time`: required. Must be in one of the formats ["yyyy-mm-dd", "yyyy-mm-ddThh:mm:ssZ"]. The provided date *minus one day* is used in the input/output file naming scheme for all steps of the pipeline, and as the harvest end date (if starting at the harvest step)
+  - *Note*: if provided source is "aspace", a method option is passed to the harvest command (if starting at the extract step) to ensure that we use the "get" harvest method instead of the default "list" method used for all other sources. This is required because ArchivesSpace inexplicably provides incomplete oai-pmh responses using the "list" method.
 
-#### Required harvest fields
+#### Required OAI-PMH harvest fields
 
-- `oai-pmh-host`: *required if starting with harvest step*, not needed otherwise. Should be the base OAI-PMH URL for the source repository.
-- `oai-metadata-format`: *required if starting with harvest step*, optional otherwise. The metadata prefix to use for the OAI-PMH harvest command, must match an available metadata prefix provided by the `oai-pmh-host` (see source repository OAI-PMH documentation for details).
+- `oai-pmh-host`: *required if next-step is extract via OAI-PMH harvest*, not needed otherwise. Should be the base OAI-PMH URL for the source repository.
+- `oai-metadata-format`: *required if next-step is extract via OAI-PMH harvest*, optional otherwise. The metadata prefix to use for the OAI-PMH harvest command, must match an available metadata prefix provided by the `oai-pmh-host` (see source repository OAI-PMH documentation for details).
 
 #### Optional fields
 
-- `index-prefix`: optional, only used for RDI sources. If included, prepends the standard index name with this prefix when identifying or creating an OpenSearch index during the load step.
-  - *Note:* The index prefix `"rdi"` *must* be used for RDI sources to enable their inclusion in the RDI UI. The resulting index name will be formatted as `"rdi-source-timestamp"`.
-- `oai-set-spec`: optional, only used when limiting the record harvest to a single set from the source repository.
-- `verbose`: optional, if provided with value `"true"` (case-insensitive) will pass the `--verbose` option (debug level logging) to harvest and transform steps.
+- `oai-set-spec`: optional, only used when limiting the OAI-PMH record harvest to a single set from the source repository.
+- `verbose`: optional, if provided with value `"true"` (case-insensitive) will pass the `--verbose` option (debug level logging) to all pipeline task run commands.
 
 ### Example format input with all fields
 
 ```json
 {
-  "harvest-type": "daily",
-  "opensearch-url": "https://YOUR-OPENSEARCH-URL",
-  "output-bucket": "YOUR-BUCKET",
-  "starting-step": "harvest",
-  "source": "YOUR-SOURCE",
-  "time": "2022-03-10T16:30:23Z",
-  "index-prefix": "rdi",
+  "next-step": "extract",
+  "run-date": "2022-03-10T16:30:23Z",
+  "run-type": "daily",
+  "source": "YOURSOURCE",
+  "verbose": "true",
   "oai-pmh-host": "https://YOUR-OAI-SOURCE/oai",
   "oai-metadata-format": "oai_dc",
-  "oai-set-spec": "YOUR-SET-SPEC",
-  "verbose": "true"
+  "oai-set-spec": "YOUR-SET-SPEC"
 }
 ```
 
 ### Example format output from the above input
 
-Note: the output will vary slightly depending on the provided `source` and, if provided, `index-prefix`, as these sometimes require different command logic. See test cases for input/output representations of all expected logic.
+Note: the output will vary slightly depending on the provided `source`, as these sometimes require different command logic. See test cases for input/output representations of all expected logic.
 
 ```json
 {
-  "starting-step": "harvest",
-  "load": {
-    "commands": [
-      "--url=https://YOUR-OPENSEARCH-URL",
-      "ingest",
-      "--source=rdi-YOUR-SOURCE",
-      "s3://YOUR-BUCKET/YOUR-SOURCE-daily-transformed-records-2022-03-09.json"
-      ]
-    },
-  "transform": {
-    "commands": [
-      "--input-file=s3://YOUR-BUCKET/YOUR-SOURCE-daily-harvested-records-2022-03-09.xml",
-      "--output-file=s3://YOUR-BUCKET/YOUR-SOURCE-daily-transformed-records-2022-03-09.json",
-      "--source=YOUR-SOURCE"
-    ],
-    "result-file": {
-      "bucket": "YOUR-BUCKET",
-      "key": "YOUR-SOURCE-daily-transformed-records-2022-03-09.json"
-    }
-  },
-  "harvest": {
-    "commands": [
+  "next-step": "transform",
+  "run-date": "2022-03-10T16:30:23Z",
+  "run-type": "daily",
+  "source": "YOURSOURCE",
+  "verbose": true,
+  "extract": {
+    "extract-command": [
       "--host=https://YOUR-OAI-SOURCE/oai",
-      "--output-file=s3://YOUR-BUCKET/YOUR-SOURCE-daily-harvested-records-2022-03-09.xml",
+      "--output-file=s3://TIMDEX-BUCKET-FROM-ENV/YOURSOURCE/YOURSOURCE-2022-03-09-daily-extracted-records-to-index.xml",
+      "--verbose",
       "harvest",
       "--metadata-format=oai_dc",
       "--set-spec=YOUR-SET-SPEC",
-      "--from-date=2022-03-09",
-      "--until-date=2022-03-09",
-      "--exclude-deleted"
-    ],
-    "result-file": {
-      "bucket": "YOUR-BUCKET",
-      "key": "YOUR-SOURCE-daily-harvested-records-2022-03-09.xml"
-    }
+      "--from-date=2022-03-09"
+    ]
   }
 }
 
@@ -138,24 +109,23 @@ make dist-dev
 ### Run the default handler for the container
 
 ```bash
-docker run -e WORKSPACE=dev -p 9000:8080 timdex-pipeline-lambdas-dev:latest
+docker run -e TIMDEX_ALMA_EXPORT_BUCKET_ID=alma-bucket-name -e TIMDEX_S3_EXTRACT_BUCKET_ID=timdex-bucket-name -e WORKSPACE=dev -p 9000:8080 timdex-pipeline-lambdas-dev:latest
 ```
 
 ### POST to the container
 
+Note: running this with next-step transform or load involves an actual S3 connection and is thus tricky to test locally. Better to push the image to Dev1 and test there.
+
 ```bash
 curl -XPOST "http://localhost:9000/2015-03-31/functions/function/invocations" -d '{
-  "harvest-type": "daily",
-  "opensearch-url": "https://YOUR-OPENSEARCH-URL",
-  "output-bucket": "YOUR-BUCKET",
-  "starting-step": "harvest",
-  "source": "YOUR-SOURCE",
-  "time": "2022-03-10T16:30:23Z",
-  "index-prefix": "rdi",
+  "next-step": "extract",
+  "run-date": "2022-03-10T16:30:23Z",
+  "run-type": "daily",
+  "source": "YOURSOURCE",
+  "verbose": "true",
   "oai-pmh-host": "https://YOUR-OAI-SOURCE/oai",
   "oai-metadata-format": "oai_dc",
-  "oai-set-spec": "YOUR-SET-SPEC",
-  "verbose": "true"
+  "oai-set-spec": "YOUR-SET-SPEC"
 }'
 ```
 
@@ -163,41 +133,21 @@ curl -XPOST "http://localhost:9000/2015-03-31/functions/function/invocations" -d
 
 ```json
 {
-  "starting-step": "harvest",
-  "load": {
-    "commands": [
-      "--url=https://YOUR-OPENSEARCH-URL",
-      "ingest",
-      "--source=rdi-YOUR-SOURCE",
-      "s3://YOUR-BUCKET/YOUR-SOURCE-daily-transformed-records-2022-03-09.json"
-      ]
-    },
-  "transform": {
-    "commands": [
-      "--input-file=s3://YOUR-BUCKET/YOUR-SOURCE-daily-harvested-records-2022-03-09.xml",
-      "--output-file=s3://YOUR-BUCKET/YOUR-SOURCE-daily-transformed-records-2022-03-09.json",
-      "--source=YOUR-SOURCE"
-    ],
-    "result-file": {
-      "bucket": "YOUR-BUCKET",
-      "key": "YOUR-SOURCE-daily-transformed-records-2022-03-09.json"
-    }
-  },
-  "harvest": {
-    "commands": [
+  "run-date": "2022-03-10",
+  "run-type": "daily",
+  "source": "YOURSOURCE",
+  "verbose": true,
+  "next-step": "transform",
+  "extract": {
+    "extract-command": [
       "--host=https://YOUR-OAI-SOURCE/oai",
-      "--output-file=s3://YOUR-BUCKET/YOUR-SOURCE-daily-harvested-records-2022-03-09.xml",
+      "--output-file=s3://timdex-bucket-name/YOURSOURCE/YOURSOURCE-2022-03-09-daily-extracted-records-to-index.xml",
+      "--verbose",
       "harvest",
       "--metadata-format=oai_dc",
       "--set-spec=YOUR-SET-SPEC",
-      "--from-date=2022-03-09",
-      "--until-date=2022-03-09",
-      "--exclude-deleted"
-    ],
-    "result-file": {
-      "bucket": "YOUR-BUCKET",
-      "key": "YOUR-SOURCE-daily-harvested-records-2022-03-09.xml"
-    }
+      "--from-date=2022-03-09"
+    ]
   }
 }
 ```
