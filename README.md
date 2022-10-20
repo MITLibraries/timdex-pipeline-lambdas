@@ -24,14 +24,14 @@ Takes input JSON (usually from EventBridge although it can be passed to a manual
 - `source`: Short name for the source repository, must match one of the source names configured for use in transform and load apps. The provided source is passed to the transform and load app CLI commands, and is also used in the input/output file naming scheme for all steps of the pipeline.
   - *Note*: if provided source is "aspace", a method option is passed to the harvest command (if starting at the extract step) to ensure that we use the "get" harvest method instead of the default "list" method used for all other sources. This is required because ArchivesSpace inexplicably provides incomplete oai-pmh responses using the "list" method.
 
-#### Required harvest fields
+#### Required OAI-PMH harvest fields
 
-- `oai-pmh-host`: *required if next-step is extract*, not needed otherwise. Should be the base OAI-PMH URL for the source repository.
-- `oai-metadata-format`: *required if next-step is extract*, optional otherwise. The metadata prefix to use for the OAI-PMH harvest command, must match an available metadata prefix provided by the `oai-pmh-host` (see source repository OAI-PMH documentation for details).
+- `oai-pmh-host`: *required if next-step is extract via OAI-PMH harvest*, not needed otherwise. Should be the base OAI-PMH URL for the source repository.
+- `oai-metadata-format`: *required if next-step is extract via OAI-PMH harvest*, optional otherwise. The metadata prefix to use for the OAI-PMH harvest command, must match an available metadata prefix provided by the `oai-pmh-host` (see source repository OAI-PMH documentation for details).
 
 #### Optional fields
 
-- `oai-set-spec`: optional, only used when limiting the record harvest to a single set from the source repository.
+- `oai-set-spec`: optional, only used when limiting the OAI-PMH record harvest to a single set from the source repository.
 - `verbose`: optional, if provided with value `"true"` (case-insensitive) will pass the `--verbose` option (debug level logging) to all pipeline task run commands.
 
 ### Example format input with all fields

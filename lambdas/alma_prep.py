@@ -23,8 +23,10 @@ def extract_file_from_source_bucket_to_target_bucket(
         file_contents = next(extract_tarfile(tar_file))
         s3_client.upload_fileobj(file_contents, target_bucket, target_file_key)
         logger.debug(
-            "File '%s' extracted and uploaded to bucket '%s' with new file name %s",
+            "File '%s' extracted from bucket '%s' and uploaded to bucket '%s' with new "
+            "file name %s",
             source_file_key,
+            source_bucket,
             target_bucket,
             target_file_key,
         )

@@ -123,10 +123,10 @@ def generate_load_commands(
             files_to_index.append({"load-command": load_command})
 
         promote_index_command = ["promote", "--index", new_index_name]
-        for key, value in config.INDEX_ALIASES.items():
-            if source in value:
+        for alias, sources in config.INDEX_ALIASES.items():
+            if source in sources:
                 promote_index_command.append("--alias")
-                promote_index_command.append(key)
+                promote_index_command.append(alias)
 
         return {
             "create-index-command": ["create", "--index", new_index_name],
