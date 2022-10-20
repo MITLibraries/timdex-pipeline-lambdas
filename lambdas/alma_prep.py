@@ -48,8 +48,8 @@ def get_load_type_and_sequence_from_alma_export_filename(
 
     Args:
         export_file_name: An Alma export filename following the expected naming
-            convention:
-            TIMDEX_ALMA_EXPORT_<timestamp>[<job>]_<load-type>_<optional-sequence-#>.xml,
+            convention: TIMDEX_ALMA_EXPORT_<run-type>_<timestamp>[<job>]_
+            <load-type>_<optional-sequence-number>.xml
 
     Returns:
         tuple: A string representing the load type - "delete" for files of records to be
@@ -83,7 +83,8 @@ def prepare_alma_export_files(run_date: str, run_type: str, timdex_bucket: str) 
     export_job_date = run_date.replace("-", "")
     alma_bucket = os.environ["TIMDEX_ALMA_EXPORT_BUCKET_ID"]
     alma_export_files = helpers.list_s3_files_by_prefix(
-        alma_bucket, f"exlibris/timdex/TIMDEX_ALMA_EXPORT_{export_job_date}"
+        alma_bucket,
+        f"exlibris/timdex/TIMDEX_ALMA_EXPORT_{run_type.upper()}_{export_job_date}",
     )
     logger.info(
         "%s Alma export files found in S3 for date %s", len(alma_export_files), run_date

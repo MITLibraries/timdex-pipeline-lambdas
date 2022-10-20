@@ -11,7 +11,7 @@ def test_extract_file_from_source_bucket_to_target_bucket(s3_client):
     alma_prep.extract_file_from_source_bucket_to_target_bucket(
         s3_client=s3_client,
         source_bucket="test-alma-bucket",
-        source_file_key="exlibris/timdex/TIMDEX_ALMA_EXPORT_20220912_210929[053]"
+        source_file_key="exlibris/timdex/TIMDEX_ALMA_EXPORT_DAILY_20220912_210929[053]"
         "_delete.tar.gz",
         target_bucket="test-timdex-bucket",
         target_file_key="extracted.xml",
@@ -23,7 +23,8 @@ def test_extract_file_from_source_bucket_to_target_bucket(s3_client):
 
 def test_extract_tarfile():
     with open(
-        "tests/fixtures/TIMDEX_ALMA_EXPORT_20220912_210929[053]_delete.tar.gz", "rb"
+        "tests/fixtures/TIMDEX_ALMA_EXPORT_DAILY_20220912_210929[053]_delete.tar.gz",
+        "rb",
     ) as tar:
         extracted = alma_prep.extract_tarfile(tar)
         xml = next(extracted).read().decode("utf-8")
@@ -31,7 +32,9 @@ def test_extract_tarfile():
 
 
 def test_get_load_type_and_sequence_from_alma_export_filename_with_sequence():
-    file_name = "exlibris/timdex/TIMDEX_ALMA_EXPORT_20220912_210929[053]_new_1.tar.gz"
+    file_name = (
+        "exlibris/timdex/TIMDEX_ALMA_EXPORT_DAILY_20220912_210929[053]_new_1.tar.gz"
+    )
     (
         load_type,
         sequence,
@@ -41,7 +44,9 @@ def test_get_load_type_and_sequence_from_alma_export_filename_with_sequence():
 
 
 def test_get_load_type_and_sequence_from_alma_export_filename_without_sequence():
-    file_name = "exlibris/timdex/TIMDEX_ALMA_EXPORT_20220912_210929[053]_delete.tar.gz"
+    file_name = (
+        "exlibris/timdex/TIMDEX_ALMA_EXPORT_DAILY_20220912_210929[053]_delete.tar.gz"
+    )
     (
         load_type,
         sequence,
