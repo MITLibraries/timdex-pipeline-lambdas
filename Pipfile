@@ -5,7 +5,6 @@ name = "pypi"
 
 [packages]
 boto3 = "*"
-sentry-sdk = "*"
 smart-open = "*"
 
 [dev-packages]
