@@ -19,9 +19,24 @@ def extract_file_from_source_bucket_to_target_bucket(
     target_file_key: str,
 ) -> None:
     """Extract a single tarred file from one s3 bucket to another s3 bucket."""
-    with smart_open.open(f"s3://{source_bucket}/{source_file_key}", "rb") as tar_file:
+    transport_params = {"client": s3_client}
+    with smart_open.open(
+        f"s3://{source_bucket}/{source_file_key}",
+        "rb",
+        transport_params=transport_params,
+    ) as tar_file:
+        logger.debug("Extracting file '%s'", source_file_key)
         file_contents = next(extract_tarfile(tar_file))
-        s3_client.upload_fileobj(file_contents, target_bucket, target_file_key)
+        with smart_open.open(
+            f"s3://{target_bucket}/{target_file_key}",
+            "wb",
+            transport_params=transport_params,
+        ) as out_file:
+            while True:
+                chunk = file_contents.read(8 * 1024 * 1024)
+                if not chunk:
+                    break
+                out_file.write(chunk)
         logger.debug(
             "File '%s' extracted from bucket '%s' and uploaded to bucket '%s' with new "
             "file name %s",
@@ -48,8 +63,8 @@ def get_load_type_and_sequence_from_alma_export_filename(
 
     Args:
         export_file_name: An Alma export filename following the expected naming
-            convention:
-            TIMDEX_ALMA_EXPORT_<timestamp>[<job>]_<load-type>_<optional-sequence-#>.xml,
+            convention: TIMDEX_ALMA_EXPORT_<run-type>_<timestamp>[<job>]_
+            <load-type>_<optional-sequence-number>.xml
 
     Returns:
         tuple: A string representing the load type - "delete" for files of records to be
@@ -83,7 +98,8 @@ def prepare_alma_export_files(run_date: str, run_type: str, timdex_bucket: str) 
     export_job_date = run_date.replace("-", "")
     alma_bucket = os.environ["TIMDEX_ALMA_EXPORT_BUCKET_ID"]
     alma_export_files = helpers.list_s3_files_by_prefix(
-        alma_bucket, f"exlibris/timdex/TIMDEX_ALMA_EXPORT_{export_job_date}"
+        alma_bucket,
+        f"exlibris/timdex/TIMDEX_ALMA_EXPORT_{run_type.upper()}_{export_job_date}",
     )
     logger.info(
         "%s Alma export files found in S3 for date %s", len(alma_export_files), run_date

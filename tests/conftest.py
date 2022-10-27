@@ -26,29 +26,32 @@ def mocked_s3():
         client.create_bucket(Bucket="test-timdex-bucket")
         client.create_bucket(Bucket="test-alma-bucket")
         with open(
-            "tests/fixtures/TIMDEX_ALMA_EXPORT_20220912_210929[053]_delete.tar.gz", "rb"
+            "tests/fixtures/TIMDEX_ALMA_EXPORT_DAILY_20220912_210929[053]_delete.tar.gz",
+            "rb",
         ) as file:
             client.put_object(
                 Bucket="test-alma-bucket",
-                Key="exlibris/timdex/TIMDEX_ALMA_EXPORT_20220912_210929[053]_delete"
+                Key="exlibris/timdex/TIMDEX_ALMA_EXPORT_DAILY_20220912_210929[053]_delete"
                 ".tar.gz",
                 Body=file,
             )
         with open(
-            "tests/fixtures/TIMDEX_ALMA_EXPORT_20220912_210929[053]_new_1.tar.gz", "rb"
+            "tests/fixtures/TIMDEX_ALMA_EXPORT_DAILY_20220912_210929[053]_new_1.tar.gz",
+            "rb",
         ) as file:
             client.put_object(
                 Bucket="test-alma-bucket",
-                Key="exlibris/timdex/TIMDEX_ALMA_EXPORT_20220912_210929[053]_new_1"
+                Key="exlibris/timdex/TIMDEX_ALMA_EXPORT_DAILY_20220912_210929[053]_new_1"
                 ".tar.gz",
                 Body=file,
             )
         with open(
-            "tests/fixtures/TIMDEX_ALMA_EXPORT_20220912_210929[053]_new_2.tar.gz", "rb"
+            "tests/fixtures/TIMDEX_ALMA_EXPORT_DAILY_20220912_210929[053]_new_2.tar.gz",
+            "rb",
         ) as file:
             client.put_object(
                 Bucket="test-alma-bucket",
-                Key="exlibris/timdex/TIMDEX_ALMA_EXPORT_20220912_210929[053]_new_2"
+                Key="exlibris/timdex/TIMDEX_ALMA_EXPORT_DAILY_20220912_210929[053]_new_2"
                 ".tar.gz",
                 Body=file,
             )
