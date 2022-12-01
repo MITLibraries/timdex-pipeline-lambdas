@@ -46,16 +46,15 @@ def lambda_handler(event: dict, context: dict) -> dict:  # noqa
             )
         except errors.NoFilesError:
             if source == "alma" or run_type == "full":
-                return {
-                    "failure": "There were no transformed files present in the TIMDEX "
-                    "S3 bucket for the provided date and source, something likely went "
-                    "wrong."
-                }
-            if run_type == "daily":
-                return {
-                    "success": "There were no daily new/updated/deleted records to "
-                    "harvest."
-                }
+                result["failure"] = (
+                    "There were no transformed files present in the TIMDEX S3 bucket "
+                    "for the provided date and source, something likely went wrong."
+                )
+            elif run_type == "daily":
+                result[
+                    "success"
+                ] = "There were no daily new/updated/deleted records to harvest."
+            return result
         logger.info(
             "%s extracted files found in TIMDEX S3 bucket for date '%s' and source '%s'",
             len(extract_output_files),
@@ -76,10 +75,11 @@ def lambda_handler(event: dict, context: dict) -> dict:  # noqa
                 ),
             )
         except errors.NoFilesError:
-            return {
-                "failure": "There were no transformed files present in the TIMDEX S3 "
-                "bucket for the provided date and source, something likely went wrong."
-            }
+            result["failure"] = (
+                "There were no transformed files present in the TIMDEX S3 bucket for "
+                "the provided date and source, something likely went wrong."
+            )
+            return result
         result["load"] = commands.generate_load_commands(
             transform_output_files, run_type, source, timdex_bucket
         )

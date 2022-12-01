@@ -113,8 +113,12 @@ def test_lambda_handler_with_next_step_transform_no_files_present_alma():
         "source": "alma",
     }
     assert format_input.lambda_handler(event, {}) == {
+        "run-date": "2022-01-02",
+        "run-type": "daily",
+        "source": "alma",
+        "verbose": False,
         "failure": "There were no transformed files present in the TIMDEX S3 bucket "
-        "for the provided date and source, something likely went wrong."
+        "for the provided date and source, something likely went wrong.",
     }
 
 
@@ -126,8 +130,12 @@ def test_lambda_handler_with_next_step_transform_no_files_present_full():
         "source": "testsource",
     }
     assert format_input.lambda_handler(event, {}) == {
+        "run-date": "2022-01-02",
+        "run-type": "full",
+        "source": "testsource",
+        "verbose": False,
         "failure": "There were no transformed files present in the TIMDEX S3 bucket "
-        "for the provided date and source, something likely went wrong."
+        "for the provided date and source, something likely went wrong.",
     }
 
 
@@ -139,7 +147,11 @@ def test_lambda_handler_with_next_step_transform_no_files_present_daily():
         "source": "testsource",
     }
     assert format_input.lambda_handler(event, {}) == {
-        "success": "There were no daily new/updated/deleted records to harvest."
+        "run-date": "2022-01-02",
+        "run-type": "daily",
+        "source": "testsource",
+        "verbose": False,
+        "success": "There were no daily new/updated/deleted records to harvest.",
     }
 
 
@@ -184,6 +196,10 @@ def test_lambda_handler_with_next_step_load_no_files_present():
         "source": "testsource",
     }
     assert format_input.lambda_handler(event, {}) == {
+        "run-date": "2022-01-02",
+        "run-type": "daily",
+        "source": "testsource",
+        "verbose": False,
         "failure": "There were no transformed files present in the TIMDEX S3 bucket "
-        "for the provided date and source, something likely went wrong."
+        "for the provided date and source, something likely went wrong.",
     }
