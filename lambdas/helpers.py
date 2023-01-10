@@ -54,7 +54,12 @@ def generate_step_output_filename(
     load), and optional file sequence number, generate a full file name.
     """
     sequence_suffix = f"_{sequence}" if sequence else ""
-    file_type = "xml" if step == "extract" else "json"
+    if step == "extract":
+        file_type = "xml"
+    elif load_type == "delete":
+        file_type = "txt"
+    else:
+        file_type = "json"
     return f"{prefix}-to-{load_type}{sequence_suffix}.{file_type}"
 
 
