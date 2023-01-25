@@ -36,7 +36,7 @@ def test_generate_step_output_filename_with_sequence():
 def test_generate_step_output_filename_without_sequence():
     assert (
         helpers.generate_step_output_filename("delete", "prefix", "transform")
-        == "prefix-to-delete.json"
+        == "prefix-to-delete.txt"
     )
 
 

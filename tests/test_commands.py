@@ -81,7 +81,7 @@ def test_generate_transform_commands_required_input_fields():
     }
 
 
-def test_generate_transform_input_all_input_fields():
+def test_generate_transform_commands_all_input_fields():
     input_data = {
         "next-step": "transform",
         "run-date": "2022-01-02T12:13:14Z",
@@ -117,6 +117,16 @@ def test_generate_transform_input_all_input_fields():
                     "--verbose",
                 ]
             },
+            {
+                "transform-command": [
+                    "--input-file=s3://test-timdex-bucket/testsource/"
+                    "testsource-2022-01-02-daily-extracted-records-to-delete.xml",
+                    "--output-file=s3://test-timdex-bucket/testsource/"
+                    "testsource-2022-01-02-daily-transformed-records-to-delete.txt",
+                    "--source=testsource",
+                    "--verbose",
+                ]
+            },
         ]
     }
 
@@ -125,7 +135,7 @@ def test_generate_load_commands_daily():
     transform_output_files = [
         "testsource/testsource-2022-01-02-daily-transformed-records-to-index_01.json",
         "testsource/testsource-2022-01-02-daily-transformed-records-to-index_02.json",
-        "testsource/testsource-2022-01-02-daily-transformed-records-to-delete.json",
+        "testsource/testsource-2022-01-02-daily-transformed-records-to-delete.txt",
     ]
     assert commands.generate_load_commands(
         transform_output_files, "daily", "testsource", "test-timdex-bucket"
@@ -149,7 +159,18 @@ def test_generate_load_commands_daily():
                     "testsource-2022-01-02-daily-transformed-records-to-index_02.json",
                 ]
             },
-        ]
+        ],
+        "files-to-delete": [
+            {
+                "load-command": [
+                    "bulk-delete",
+                    "--source",
+                    "testsource",
+                    "s3://test-timdex-bucket/testsource/"
+                    "testsource-2022-01-02-daily-transformed-records-to-delete.txt",
+                ]
+            }
+        ],
     }
 
 
@@ -184,7 +205,7 @@ def test_generate_load_commands_full_not_aliased():
 
 
 @freeze_time("2022-01-02 12:13:14")
-def test_generate_load_input_full_aliased():
+def test_generate_load_commands_full_aliased():
     transform_output_files = [
         "alma/alma-2022-01-02-full-transformed-records-to-index.json"
     ]
@@ -213,6 +234,22 @@ def test_generate_load_input_full_aliased():
             "timdex",
         ],
     }
+
+
+@freeze_time("2022-01-02 12:13:14")
+def test_generate_load_commands_full_with_deletes_logs_error(caplog):
+    transform_output_files = [
+        "alma/alma-2022-01-02-full-transformed-records-to-delete.txt"
+    ]
+    commands.generate_load_commands(
+        transform_output_files, "full", "alma", "test-timdex-bucket"
+    )
+    assert (
+        "lambdas.commands",
+        40,
+        "alma full ingest had a deleted records file: "
+        "alma/alma-2022-01-02-full-transformed-records-to-delete.txt",
+    ) in caplog.record_tuples
 
 
 def test_generate_load_command_unexpected_input():

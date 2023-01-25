@@ -85,6 +85,15 @@ def test_lambda_handler_with_next_step_transform_alma_files_present():
                 {
                     "transform-command": [
                         "--input-file=s3://test-timdex-bucket/alma/"
+                        "alma-2022-09-12-daily-extracted-records-to-delete.xml",
+                        "--output-file=s3://test-timdex-bucket/alma/"
+                        "alma-2022-09-12-daily-transformed-records-to-delete.txt",
+                        "--source=alma",
+                    ]
+                },
+                {
+                    "transform-command": [
+                        "--input-file=s3://test-timdex-bucket/alma/"
                         "alma-2022-09-12-daily-extracted-records-to-index_01.xml",
                         "--output-file=s3://test-timdex-bucket/alma/"
                         "alma-2022-09-12-daily-transformed-records-to-index_01.json",
@@ -161,6 +170,11 @@ def test_lambda_handler_with_next_step_load_files_present(s3_client):
         Key="testsource/testsource-2022-01-02-daily-transformed-records-to-index.json",
         Body="I am a file",
     )
+    s3_client.put_object(
+        Bucket="test-timdex-bucket",
+        Key="testsource/testsource-2022-01-02-daily-transformed-records-to-delete.txt",
+        Body="record-id",
+    )
     event = {
         "run-date": "2022-01-02T12:13:14Z",
         "run-type": "daily",
@@ -183,7 +197,18 @@ def test_lambda_handler_with_next_step_load_files_present(s3_client):
                         "testsource-2022-01-02-daily-transformed-records-to-index.json",
                     ]
                 },
-            ]
+            ],
+            "files-to-delete": [
+                {
+                    "load-command": [
+                        "bulk-delete",
+                        "--source",
+                        "testsource",
+                        "s3://test-timdex-bucket/testsource/"
+                        "testsource-2022-01-02-daily-transformed-records-to-delete.txt",
+                    ]
+                },
+            ],
         },
     }
 

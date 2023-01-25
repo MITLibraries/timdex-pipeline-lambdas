@@ -1,4 +1,8 @@
+import logging
+
 from lambdas import config, helpers
+
+logger = logging.getLogger(__name__)
 
 
 def generate_extract_command(
@@ -75,11 +79,7 @@ def generate_transform_commands(
         if verbose:
             transform_command.append("--verbose")
 
-        if load_type == "index":
-            files_to_transform.append({"transform-command": transform_command})
-        elif load_type == "delete":
-            # Not yet implemented
-            pass
+        files_to_transform.append({"transform-command": transform_command})
 
     return {"files-to-transform": files_to_transform}
 
@@ -90,6 +90,7 @@ def generate_load_commands(
     """Generate task run command for loading records into OpenSearch."""
     if run_type == "daily":
         files_to_index = []
+        files_to_delete = []
 
         for transform_output_file in transform_output_files:
             load_type, _ = helpers.get_load_type_and_sequence_from_timdex_filename(
@@ -104,16 +105,31 @@ def generate_load_commands(
                 ]
                 files_to_index.append({"load-command": load_command})
             elif load_type == "delete":
-                # Not yet implemented
-                pass
+                load_command = [
+                    "bulk-delete",
+                    "--source",
+                    source,
+                    f"s3://{timdex_bucket}/{transform_output_file}",
+                ]
+                files_to_delete.append({"load-command": load_command})
 
-        return {"files-to-index": files_to_index}
+        return {"files-to-index": files_to_index, "files-to-delete": files_to_delete}
 
     if run_type == "full":
         new_index_name = helpers.generate_index_name(source)
 
         files_to_index = []
         for transform_output_file in transform_output_files:
+            load_type, _ = helpers.get_load_type_and_sequence_from_timdex_filename(
+                transform_output_file
+            )
+            if load_type == "delete":
+                logger.error(
+                    "%s full ingest had a deleted records file: %s",
+                    source,
+                    transform_output_file,
+                )
+                continue
             load_command = [
                 "bulk-index",
                 "--index",

@@ -13,6 +13,7 @@ black = "*"
 coverage = "*"
 freezegun = "*"
 moto = "*"
+mypy = "*"
 pylama = {extras = ["all"], version = "*"}
 pytest = "*"
 
