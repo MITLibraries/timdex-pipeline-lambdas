@@ -65,7 +65,7 @@ def test_generate_transform_commands_required_input_fields():
         "testsource/testsource-2022-01-02-full-extracted-records-to-index.xml"
     ]
     assert commands.generate_transform_commands(
-        extract_output_files, input_data, "2022-01-02", "test-timdex-bucket", False
+        extract_output_files, input_data, "2022-01-02", "test-timdex-bucket"
     ) == {
         "files-to-transform": [
             {
@@ -94,7 +94,7 @@ def test_generate_transform_commands_all_input_fields():
         "testsource/testsource-2022-01-02-daily-extracted-records-to-delete.xml",
     ]
     assert commands.generate_transform_commands(
-        extract_output_files, input_data, "2022-01-02", "test-timdex-bucket", True
+        extract_output_files, input_data, "2022-01-02", "test-timdex-bucket"
     ) == {
         "files-to-transform": [
             {
@@ -104,7 +104,6 @@ def test_generate_transform_commands_all_input_fields():
                     "--output-file=s3://test-timdex-bucket/testsource/"
                     "testsource-2022-01-02-daily-transformed-records-to-index_01.json",
                     "--source=testsource",
-                    "--verbose",
                 ]
             },
             {
@@ -114,7 +113,6 @@ def test_generate_transform_commands_all_input_fields():
                     "--output-file=s3://test-timdex-bucket/testsource/"
                     "testsource-2022-01-02-daily-transformed-records-to-index_02.json",
                     "--source=testsource",
-                    "--verbose",
                 ]
             },
             {
@@ -124,7 +122,6 @@ def test_generate_transform_commands_all_input_fields():
                     "--output-file=s3://test-timdex-bucket/testsource/"
                     "testsource-2022-01-02-daily-transformed-records-to-delete.txt",
                     "--source=testsource",
-                    "--verbose",
                 ]
             },
         ]
