@@ -58,7 +58,6 @@ def test_lambda_handler_with_next_step_transform_files_present(s3_client):
                         "--output-file=s3://test-timdex-bucket/testsource/"
                         "testsource-2022-01-02-daily-transformed-records-to-index.json",
                         "--source=testsource",
-                        "--verbose",
                     ]
                 }
             ]

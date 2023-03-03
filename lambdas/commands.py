@@ -30,7 +30,7 @@ def generate_extract_command(
     extract_command.append("harvest")
     extract_command.append(f"--metadata-format={input_data['oai-metadata-format']}")
 
-    if source == "aspace":
+    if source in ["aspace", "dspace"]:
         extract_command.append("--method=get")
 
     if set_spec := input_data.get("oai-set-spec"):
@@ -53,7 +53,6 @@ def generate_transform_commands(
     input_data: dict,
     run_date: str,
     timdex_bucket: str,
-    verbose: bool,
 ) -> dict:
     """Generate task run command for TIMDEX transform."""
     files_to_transform: list[dict] = []
@@ -76,8 +75,6 @@ def generate_transform_commands(
             f"--output-file=s3://{timdex_bucket}/{transform_output_file}",
             f"--source={source}",
         ]
-        if verbose:
-            transform_command.append("--verbose")
 
         files_to_transform.append({"transform-command": transform_command})
 

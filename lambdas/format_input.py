@@ -63,7 +63,7 @@ def lambda_handler(event: dict, context: dict) -> dict:  # noqa
         )
         result["next-step"] = "load"
         result["transform"] = commands.generate_transform_commands(
-            extract_output_files, event, run_date, timdex_bucket, verbose
+            extract_output_files, event, run_date, timdex_bucket
         )
 
     elif next_step == "load":
