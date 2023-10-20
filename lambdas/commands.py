@@ -6,7 +6,11 @@ logger = logging.getLogger(__name__)
 
 
 def generate_extract_command(
-    input_data: dict, run_date: str, timdex_bucket: str, verbose: bool
+    # ruff: noqa: FBT001
+    input_data: dict,
+    run_date: str,
+    timdex_bucket: str,
+    verbose: bool,
 ) -> dict:
     """Generate task run command for extract via OAI-PMH harvest."""
     run_type = input_data["run-type"]

@@ -7,7 +7,7 @@ from lambdas import alma_prep, commands, config, errors, helpers
 logger = logging.getLogger(__name__)
 
 
-def lambda_handler(event: dict, context: dict) -> dict:  # noqa
+def lambda_handler(event: dict, _context: dict) -> dict:
     """Format data into the necessary input for TIMDEX pipeline processing."""
     config.verify_env()
     verbose = config.check_verbosity(event.get("verbose", False))

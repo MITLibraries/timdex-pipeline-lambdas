@@ -1,6 +1,5 @@
 import logging
 import os
-from typing import Union
 
 INDEX_ALIASES = {
     "rdi": ["jpal", "whoas", "zenodo"],
@@ -18,14 +17,18 @@ VALID_RUN_TYPES = ("full", "daily")
 VALID_STEPS = ("extract", "transform", "load")
 
 
-def check_verbosity(verbose: Union[bool, str]) -> bool:
+def check_verbosity(verbose: bool | str) -> bool:
     """Determine whether verbose is True or False given a boolean or string value."""
     if isinstance(verbose, bool):
         return verbose
     return verbose.lower() == "true"
 
 
-def configure_logger(logger: logging.Logger, verbose: bool) -> str:
+def configure_logger(
+    logger: logging.Logger,
+    # ruff: noqa: FBT001
+    verbose: bool,
+) -> str:
     """Configure provided logger with level debug if verbose, otherwise info."""
     if verbose:
         logging.basicConfig(
@@ -52,42 +55,46 @@ def validate_input(input_data: dict) -> None:
     Ensures that all requiered input fields are present and contain valid data.
     """
     # All required fields are present
-    if missing_fields := [
-        field for field in REQUIRED_FIELDS if field not in input_data
-    ]:
-        raise ValueError(
+    if missing_fields := [field for field in REQUIRED_FIELDS if field not in input_data]:
+        message = (
             f"Input must include all required fields. Missing fields: {missing_fields}"
         )
+        raise ValueError(message)
 
     # Valid next step
     next_step = input_data["next-step"]
     if next_step not in VALID_STEPS:
-        raise ValueError(
-            f"Input 'next-step' value must be one of: {VALID_STEPS}. Value provided "
-            f"was '{next_step}'"
+        message = (
+            f"Input 'next-step' value must be one of: {VALID_STEPS}. Value "
+            f"provided was '{next_step}'"
         )
+        raise ValueError(message)
 
     # Valid run type
     run_type = input_data["run-type"]
     if run_type not in VALID_RUN_TYPES:
-        raise ValueError(
+        message = (
             f"Input 'run-type' value must be one of: {VALID_RUN_TYPES}. Value "
             f"provided was '{run_type}'"
         )
+        raise ValueError(message)
 
     # If next step is extract step, required harvest fields are present
+    # ruff: noqa: SIM102
     if input_data["next-step"] == "extract":
         if missing_harvest_fields := [
             field for field in REQUIRED_HARVEST_FIELDS if field not in input_data
         ]:
-            raise ValueError(
+            message = (
                 "Input must include all required harvest fields when starting with "
                 f"harvest step. Missing fields: {missing_harvest_fields}"
             )
+            raise ValueError(message)
 
 
 def verify_env() -> None:
     """Confirm that required env variables are set."""
     for key in REQUIRED_ENV:
         if not os.getenv(key):
-            raise RuntimeError(f"Required env variable {key} is not set")
+            message = f"Required env variable {key} is not set"
+            raise RuntimeError(message)

@@ -1,6 +1,6 @@
+import contextlib
 import logging
-from datetime import datetime, timedelta
-from typing import Optional, Tuple
+from datetime import UTC, datetime, timedelta
 
 import boto3
 
@@ -18,35 +18,34 @@ def format_run_date(input_date: str) -> str:
     """
     input_date_object = None
     for date_format in config.VALID_DATE_FORMATS:
-        try:
-            input_date_object = datetime.strptime(input_date, date_format)
-        except ValueError:
-            pass
+        with contextlib.suppress(ValueError):
+            input_date_object = datetime.strptime(input_date, date_format).astimezone(UTC)
     if input_date_object:
         return input_date_object.strftime("%Y-%m-%d")
-    raise ValueError(
+    message = (
         "Input 'run-date' value must be one of the following date string formats: "
         f"{config.VALID_DATE_FORMATS}. Value provided was '{input_date}'"
     )
+    raise ValueError(message)
 
 
 def generate_harvest_from_date(run_date_string: str) -> str:
     """Return a the provided date string minus one day, used for daily harvests."""
-    run_date = datetime.strptime(run_date_string, "%Y-%m-%d")
+    run_date = datetime.strptime(run_date_string, "%Y-%m-%d").astimezone(UTC)
     harvest_from_date = run_date - timedelta(days=1)
     return harvest_from_date.strftime("%Y-%m-%d")
 
 
 def generate_index_name(source: str) -> str:
     """Generate a TIMDEX index name following our index naming convention."""
-    return f"{source}-{datetime.now().strftime('%Y-%m-%dt%H-%M-%S')}"
+    return f"{source}-{datetime.now(tz=UTC).strftime('%Y-%m-%dt%H-%M-%S')}"
 
 
 def generate_step_output_filename(
     load_type: str,
     prefix: str,
     step: str,
-    sequence: Optional[str] = None,
+    sequence: str | None = None,
 ) -> str:
     """Generate a full TIMDEX file name as used for pipeline files in S3.
 
@@ -76,7 +75,7 @@ def generate_step_output_prefix(
 
 def get_load_type_and_sequence_from_timdex_filename(
     file_name: str,
-) -> Tuple[str, Optional[str]]:
+) -> tuple[str, str | None]:
     """Given a TIMDEX file name, return the load type and optional sequence number.
 
     Returns:
@@ -94,13 +93,10 @@ def list_s3_files_by_prefix(bucket: str, prefix: str) -> list[str]:
     s3_client = boto3.client("s3")
     paginator = s3_client.get_paginator("list_objects_v2")
     pages = paginator.paginate(Bucket=bucket, Prefix=prefix)
-    s3_files = []
     try:
-        for s3_object in (
-            s3_object for page in pages for s3_object in page["Contents"]
-        ):
-            s3_files.append(s3_object["Key"])
+        s3_files = [s3_object["Key"] for page in pages for s3_object in page["Contents"]]
     except KeyError as error:
+        # ruff: noqa: TRY400
         logger.error(
             "No files retrieved from bucket '%s' with prefix '%s'", bucket, prefix
         )

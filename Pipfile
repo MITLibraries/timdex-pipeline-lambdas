@@ -8,14 +8,15 @@ boto3 = "*"
 smart-open = "*"
 
 [dev-packages]
-bandit = "*"
 black = "*"
+boto3-stubs = {extras = ["essential"], version = "*"}
 coverage = "*"
 freezegun = "*"
 moto = "*"
 mypy = "*"
-pylama = {extras = ["all"], version = "*"}
+pre-commit = "*"
 pytest = "*"
+ruff = "*"
 
 [requires]
-python_version = "3.10"
+python_version = "3.11"

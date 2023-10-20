@@ -1,3 +1,5 @@
+# ruff: noqa: FBT003, PT011
+
 import pytest
 
 from lambdas import config
@@ -23,9 +25,8 @@ def test_validate_input_missing_required_field_raises_error():
     }
     with pytest.raises(ValueError) as error:
         config.validate_input(event)
-    assert (
-        "Input must include all required fields. Missing fields: ['run-date']"
-        in str(error.value)
+    assert "Input must include all required fields. Missing fields: ['run-date']" in str(
+        error.value
     )
 
 
