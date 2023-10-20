@@ -2,11 +2,13 @@ import logging
 import os
 import tarfile
 from collections.abc import Generator
-from typing import IO
+from typing import IO, TYPE_CHECKING
 
 import boto3
 import smart_open  # type: ignore[import]
-from mypy_boto3_s3.client import S3Client
+
+if TYPE_CHECKING:
+    from mypy_boto3_s3.client import S3Client  # pragma: no cover
 
 from lambdas import helpers
 
@@ -14,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 def extract_file_from_source_bucket_to_target_bucket(
-    s3_client: S3Client,
+    s3_client: "S3Client",
     source_bucket: str,
     source_file_key: str,
     target_bucket: str,

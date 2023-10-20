@@ -14,6 +14,7 @@ help: ## Print this message
 ### Dependency commands ###
 install: ## Install dependencies
 	pipenv install --dev
+	pipenv run pre-commit install
 
 update: install # update all Python dependencies
 	pipenv clean
