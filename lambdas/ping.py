@@ -1,2 +1,2 @@
-def lambda_handler(event: dict, context: dict) -> str:  # noqa
+def lambda_handler(_event: dict, _context: dict) -> str:
     return "pong"

@@ -1,3 +1,5 @@
+# ruff: noqa: PT011
+
 import pytest
 from freezegun import freeze_time
 
@@ -42,9 +44,7 @@ def test_generate_step_output_filename_without_sequence():
 
 def test_generate_step_output_prefix():
     assert (
-        helpers.generate_step_output_prefix(
-            "testsource", "2022-01-02", "full", "extract"
-        )
+        helpers.generate_step_output_prefix("testsource", "2022-01-02", "full", "extract")
         == "testsource/testsource-2022-01-02-full-extracted-records"
     )
 

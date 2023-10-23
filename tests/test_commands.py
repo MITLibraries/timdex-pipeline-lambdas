@@ -1,3 +1,5 @@
+# ruff: noqa: FBT003
+
 from freezegun import freeze_time
 
 from lambdas import commands
@@ -255,6 +257,4 @@ def test_generate_load_command_unexpected_input():
     ]
     assert commands.generate_load_commands(
         transform_output_files, "wrong", "alma", "test-timdex-bucket"
-    ) == {
-        "failure": "Something unexpected went wrong. Please check input and try again."
-    }
+    ) == {"failure": "Something unexpected went wrong. Please check input and try again."}

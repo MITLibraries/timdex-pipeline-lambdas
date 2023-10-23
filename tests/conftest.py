@@ -1,22 +1,18 @@
-import os
-
 import boto3
 import pytest
 from moto import mock_s3
 
 
 @pytest.fixture(autouse=True)
-def test_env():
-    os.environ = {
-        "AWS_ACCESS_KEY_ID": "testing",
-        "AWS_DEFAULT_REGION": "us-east-1",
-        "AWS_SECRET_ACCESS_KEY": "testing",
-        "AWS_SECURITY_TOKEN": "testing",
-        "AWS_SESSION_TOKEN": "testing",
-        "TIMDEX_ALMA_EXPORT_BUCKET_ID": "test-alma-bucket",
-        "TIMDEX_S3_EXTRACT_BUCKET_ID": "test-timdex-bucket",
-        "WORKSPACE": "test",
-    }
+def _test_env(monkeypatch):
+    monkeypatch.setenv("AWS_ACCESS_KEY_ID", "testing")
+    monkeypatch.setenv("AWS_DEFAULT_REGION", "us-east-1")
+    monkeypatch.setenv("AWS_SECRET_ACCESS_KEY", "testing")
+    monkeypatch.setenv("AWS_SECURITY_TOKEN", "testing")
+    monkeypatch.setenv("AWS_SESSION_TOKEN", "testing")
+    monkeypatch.setenv("TIMDEX_ALMA_EXPORT_BUCKET_ID", "test-alma-bucket")
+    monkeypatch.setenv("TIMDEX_S3_EXTRACT_BUCKET_ID", "test-timdex-bucket")
+    monkeypatch.setenv("WORKSPACE", "test")
 
 
 @pytest.fixture(autouse=True)
@@ -58,6 +54,7 @@ def mocked_s3():
         yield client
 
 
-@pytest.fixture()
+@pytest.fixture
 def s3_client():
+    # ruff: noqa: PT022
     yield boto3.client("s3")

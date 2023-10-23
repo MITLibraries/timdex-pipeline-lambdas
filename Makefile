@@ -14,11 +14,11 @@ help: ## Print this message
 ### Dependency commands ###
 install: ## Install dependencies
 	pipenv install --dev
+	pipenv run pre-commit install
 
-update: install ## Update all Python dependencies
+update: install # update all Python dependencies
 	pipenv clean
 	pipenv update --dev
-	pipenv requirements
 
 ### Test commands ###
 test: ## Run tests and print a coverage report
@@ -28,24 +28,32 @@ test: ## Run tests and print a coverage report
 coveralls: test
 	pipenv run coverage lcov -o ./coverage/lcov.info
 
-### Code quality and safety commands ###
-lint: bandit black mypy pylama safety ## Run linting, code quality, and safety checks
+## ---- Code quality and safety commands ---- ##
 
-bandit:
-	pipenv run bandit -r lambdas
+# linting commands
+lint: black mypy ruff safety
 
 black:
 	pipenv run black --check --diff .
 
 mypy:
-	pipenv run mypy lambdas
+	pipenv run mypy .
 
-pylama:
-	pipenv run pylama --options setup.cfg
+ruff:
+	pipenv run ruff check .
 
 safety:
 	pipenv check
 	pipenv verify
+
+# apply changes to resolve any linting errors
+lint-apply: black-apply ruff-apply
+
+black-apply:
+	pipenv run black .
+
+ruff-apply:
+	pipenv run ruff check --fix .
 
 ### Terraform-generated Developer Deploy Commands for Dev environment ###
 dist-dev: ## Build docker container (intended for developer-based manual build)

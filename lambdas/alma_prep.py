@@ -1,10 +1,14 @@
 import logging
 import os
 import tarfile
-from typing import IO, Generator, Optional, Tuple
+from collections.abc import Generator
+from typing import IO, TYPE_CHECKING
 
 import boto3
-import smart_open
+import smart_open  # type: ignore[import]
+
+if TYPE_CHECKING:
+    from mypy_boto3_s3.client import S3Client  # pragma: no cover
 
 from lambdas import helpers
 
@@ -12,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 def extract_file_from_source_bucket_to_target_bucket(
-    s3_client: boto3.client,
+    s3_client: "S3Client",
     source_bucket: str,
     source_file_key: str,
     target_bucket: str,
@@ -58,7 +62,7 @@ def extract_tarfile(tar_file: IO[bytes]) -> Generator[IO[bytes], None, None]:
 
 def get_load_type_and_sequence_from_alma_export_filename(
     export_file_name: str,
-) -> Tuple[str, Optional[str]]:
+) -> tuple[str, str | None]:
     """Get the load type and sequence from an Alma export filename.
 
     Args:

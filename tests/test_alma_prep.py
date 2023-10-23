@@ -18,6 +18,7 @@ def test_extract_file_from_source_bucket_to_target_bucket(s3_client):
     )
 
     response = s3_client.head_object(Bucket="test-timdex-bucket", Key="extracted.xml")
+    # ruff: noqa: PLR2004
     assert response["ResponseMetadata"]["HTTPStatusCode"] == 200
 
 
@@ -64,4 +65,5 @@ def test_prepare_alma_export_files(s3_client):
     ending_files_in_timdex_bucket = s3_client.list_objects_v2(
         Bucket="test-timdex-bucket"
     )["KeyCount"]
+    # ruff: noqa: PLR2004
     assert ending_files_in_timdex_bucket == 3
