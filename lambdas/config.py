@@ -4,6 +4,7 @@ import os
 INDEX_ALIASES = {
     "rdi": ["jpal", "whoas", "zenodo"],
     "timdex": ["alma", "aspace", "dspace"],
+    "geo": ["gismit", "gisogm"],
 }
 REQUIRED_ENV = {
     "TIMDEX_ALMA_EXPORT_BUCKET_ID",
