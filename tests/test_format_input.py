@@ -16,6 +16,7 @@ def test_lambda_handler_with_next_step_extract():
         "run-type": "daily",
         "source": "testsource",
         "verbose": False,
+        "harvester-type": "oai",
         "next-step": "transform",
         "extract": {
             "extract-command": [

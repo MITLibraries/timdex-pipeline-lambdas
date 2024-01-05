@@ -1,4 +1,3 @@
-import json
 import logging
 import os
 
@@ -12,7 +11,6 @@ def lambda_handler(event: dict, _context: dict) -> dict:
     config.verify_env()
     verbose = config.check_verbosity(event.get("verbose", False))
     config.configure_logger(logging.getLogger(), verbose)
-    logger.debug(json.dumps(event))
     config.validate_input(event)
 
     run_date = helpers.format_run_date(event["run-date"])
@@ -29,6 +27,10 @@ def lambda_handler(event: dict, _context: dict) -> dict:
     }
 
     if next_step == "extract":
+        if source in ["gismit", "gisogm"]:
+            result["harvester-type"] = "geo"
+        else:
+            result["harvester-type"] = "oai"
         result["next-step"] = "transform"
         result["extract"] = commands.generate_extract_command(
             event, run_date, timdex_bucket, verbose

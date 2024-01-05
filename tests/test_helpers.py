@@ -30,14 +30,16 @@ def test_generate_index_name():
 
 def test_generate_step_output_filename_with_sequence():
     assert (
-        helpers.generate_step_output_filename("index", "prefix", "extract", "01")
+        helpers.generate_step_output_filename(
+            "source", "index", "prefix", "extract", "01"
+        )
         == "prefix-to-index_01.xml"
     )
 
 
 def test_generate_step_output_filename_without_sequence():
     assert (
-        helpers.generate_step_output_filename("delete", "prefix", "transform")
+        helpers.generate_step_output_filename("source", "delete", "prefix", "transform")
         == "prefix-to-delete.txt"
     )
 

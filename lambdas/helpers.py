@@ -42,6 +42,7 @@ def generate_index_name(source: str) -> str:
 
 
 def generate_step_output_filename(
+    source: str,
     load_type: str,
     prefix: str,
     step: str,
@@ -54,7 +55,7 @@ def generate_step_output_filename(
     """
     sequence_suffix = f"_{sequence}" if sequence else ""
     if step == "extract":
-        file_type = "xml"
+        file_type = "jsonl" if "gis" in source else "xml"
     elif load_type == "delete":
         file_type = "txt"
     else:

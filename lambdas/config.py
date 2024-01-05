@@ -12,7 +12,7 @@ REQUIRED_ENV = {
     "WORKSPACE",
 }
 REQUIRED_FIELDS = ("next-step", "run-date", "run-type", "source")
-REQUIRED_HARVEST_FIELDS = ("oai-pmh-host", "oai-metadata-format")
+REQUIRED_OAI_HARVEST_FIELDS = ("oai-pmh-host", "oai-metadata-format")
 VALID_DATE_FORMATS = ("%Y-%m-%d", "%Y-%m-%dT%H:%M:%SZ")
 VALID_RUN_TYPES = ("full", "daily")
 VALID_STEPS = ("extract", "transform", "load")
@@ -83,14 +83,15 @@ def validate_input(input_data: dict) -> None:
     # If next step is extract step, required harvest fields are present
     # ruff: noqa: SIM102
     if input_data["next-step"] == "extract":
-        if missing_harvest_fields := [
-            field for field in REQUIRED_HARVEST_FIELDS if field not in input_data
-        ]:
-            message = (
-                "Input must include all required harvest fields when starting with "
-                f"harvest step. Missing fields: {missing_harvest_fields}"
-            )
-            raise ValueError(message)
+        if input_data["source"] not in ["gismit", "gisogm"]:
+            if missing_harvest_fields := [
+                field for field in REQUIRED_OAI_HARVEST_FIELDS if field not in input_data
+            ]:
+                message = (
+                    "Input must include all required harvest fields when starting with "
+                    f"harvest step. Missing fields: {missing_harvest_fields}"
+                )
+                raise ValueError(message)
 
 
 def verify_env() -> None:
