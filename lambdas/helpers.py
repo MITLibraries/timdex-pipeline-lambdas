@@ -55,7 +55,7 @@ def generate_step_output_filename(
     """
     sequence_suffix = f"_{sequence}" if sequence else ""
     if step == "extract":
-        file_type = "jsonl" if "gis" in source else "xml"
+        file_type = "jsonl" if source in config.GIS_SOURCES else "xml"
     elif load_type == "delete":
         file_type = "txt"
     else:

@@ -28,6 +28,17 @@ def test_generate_index_name():
     assert helpers.generate_index_name("testsource") == "testsource-2022-01-02t12-13-14"
 
 
+def test_generate_step_output_filename_geoharvester_file_type():
+    assert (
+        helpers.generate_step_output_filename("gismit", "index", "prefix", "extract")
+        == "prefix-to-index.jsonl"
+    )
+    assert (
+        helpers.generate_step_output_filename("gisogm", "index", "prefix", "extract")
+        == "prefix-to-index.jsonl"
+    )
+
+
 def test_generate_step_output_filename_with_sequence():
     assert (
         helpers.generate_step_output_filename(

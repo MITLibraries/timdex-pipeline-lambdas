@@ -28,7 +28,7 @@ def generate_extract_command(
     if verbose:
         extract_command.append("--verbose")
 
-    if source in ["gismit", "gisogm"]:
+    if source in config.GIS_SOURCES:
         extract_command.append("harvest")
         if run_type == "daily":
             extract_command.append("--harvest-type=incremental")

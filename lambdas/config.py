@@ -1,10 +1,11 @@
 import logging
 import os
 
+GIS_SOURCES = ["gismit", "gisogm"]
 INDEX_ALIASES = {
     "rdi": ["jpal", "whoas", "zenodo"],
     "timdex": ["alma", "aspace", "dspace"],
-    "geo": ["gismit", "gisogm"],
+    "geo": GIS_SOURCES,
 }
 REQUIRED_ENV = {
     "TIMDEX_ALMA_EXPORT_BUCKET_ID",
@@ -83,7 +84,7 @@ def validate_input(input_data: dict) -> None:
     # If next step is extract step, required harvest fields are present
     # ruff: noqa: SIM102
     if input_data["next-step"] == "extract":
-        if input_data["source"] not in ["gismit", "gisogm"]:
+        if input_data["source"] not in GIS_SOURCES:
             if missing_harvest_fields := [
                 field for field in REQUIRED_OAI_HARVEST_FIELDS if field not in input_data
             ]:
