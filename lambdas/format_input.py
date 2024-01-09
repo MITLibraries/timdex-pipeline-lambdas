@@ -29,6 +29,10 @@ def lambda_handler(event: dict, _context: dict) -> dict:
     }
 
     if next_step == "extract":
+        if source in config.GIS_SOURCES:
+            result["harvester-type"] = "geo"
+        else:
+            result["harvester-type"] = "oai"
         result["next-step"] = "transform"
         result["extract"] = commands.generate_extract_command(
             event, run_date, timdex_bucket, verbose

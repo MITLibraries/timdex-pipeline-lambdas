@@ -114,6 +114,7 @@ def prepare_alma_export_files(run_date: str, run_type: str, timdex_bucket: str) 
             export_file
         )
         extract_output_file = helpers.generate_step_output_filename(
+            "alma",
             load_type,
             helpers.generate_step_output_prefix("alma", run_date, run_type, "extract"),
             "extract",

@@ -20,32 +20,47 @@ def generate_extract_command(
         source, run_date, run_type, step
     )
     extract_output_file = helpers.generate_step_output_filename(
-        "index", extract_output_prefix, step
+        source, "index", extract_output_prefix, step
     )
 
-    extract_command = [
-        f"--host={input_data['oai-pmh-host']}",
-        f"--output-file=s3://{timdex_bucket}/{extract_output_file}",
-    ]
+    extract_command = []
 
     if verbose:
         extract_command.append("--verbose")
 
-    extract_command.append("harvest")
-    extract_command.append(f"--metadata-format={input_data['oai-metadata-format']}")
+    if source in config.GIS_SOURCES:
+        extract_command.append("harvest")
+        if run_type == "daily":
+            extract_command.append("--harvest-type=incremental")
+            extract_command.append(
+                f"--from-date={helpers.generate_harvest_from_date(run_date)}"
+            )
+        elif run_type == "full":
+            extract_command.append("--harvest-type=full")
 
-    if source in ["aspace", "dspace"]:
-        extract_command.append("--method=get")
-
-    if set_spec := input_data.get("oai-set-spec"):
-        extract_command.append(f"--set-spec={set_spec}")
-
-    if run_type == "daily":
         extract_command.append(
-            f"--from-date={helpers.generate_harvest_from_date(run_date)}",
+            f"--output-file=s3://{timdex_bucket}/{extract_output_file}"
         )
-    elif run_type == "full":
-        extract_command.append("--exclude-deleted")
+        extract_command.append(source.removeprefix("gis"))
+
+    else:
+        extract_command.append(f"--host={input_data['oai-pmh-host']}")
+        extract_command.append(
+            f"--output-file=s3://{timdex_bucket}/{extract_output_file}"
+        )
+        extract_command.append("harvest")
+        if source in ["aspace", "dspace"]:
+            extract_command.append("--method=get")
+        extract_command.append(f"--metadata-format={input_data['oai-metadata-format']}")
+        if run_type == "daily":
+            extract_command.append(
+                f"--from-date={helpers.generate_harvest_from_date(run_date)}",
+            )
+        elif run_type == "full":
+            extract_command.append("--exclude-deleted")
+
+        if set_spec := input_data.get("oai-set-spec"):
+            extract_command.append(f"--set-spec={set_spec}")
 
     return {
         "extract-command": extract_command,
@@ -71,7 +86,7 @@ def generate_transform_commands(
             extract_output_file
         )
         transform_output_file = helpers.generate_step_output_filename(
-            load_type, transform_output_prefix, "transform", sequence
+            source, load_type, transform_output_prefix, "transform", sequence
         )
 
         transform_command = [

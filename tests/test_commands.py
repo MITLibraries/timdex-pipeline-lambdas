@@ -43,15 +43,36 @@ def test_generate_extract_command_all_input_fields():
         input_data, "2022-01-02", "test-timdex-bucket", True
     ) == {
         "extract-command": [
+            "--verbose",
             "--host=https://example.com/oai",
             "--output-file=s3://test-timdex-bucket/aspace/"
             "aspace-2022-01-02-full-extracted-records-to-index.xml",
-            "--verbose",
             "harvest",
-            "--metadata-format=oai_dc",
             "--method=get",
-            "--set-spec=Collection1",
+            "--metadata-format=oai_dc",
             "--exclude-deleted",
+            "--set-spec=Collection1",
+        ]
+    }
+
+
+def test_generate_extract_command_geoharvester():
+    input_data = {
+        "run-date": "2022-01-02T12:13:14Z",
+        "run-type": "daily",
+        "next-step": "extract",
+        "source": "gismit",
+    }
+    assert commands.generate_extract_command(
+        input_data, "2022-01-02", "test-timdex-bucket", False
+    ) == {
+        "extract-command": [
+            "harvest",
+            "--harvest-type=incremental",
+            "--from-date=2022-01-01",
+            "--output-file=s3://test-timdex-bucket/gismit/"
+            "gismit-2022-01-02-daily-extracted-records-to-index.jsonl",
+            "mit",
         ]
     }
 
