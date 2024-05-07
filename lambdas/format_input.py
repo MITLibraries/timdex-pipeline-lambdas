@@ -55,9 +55,9 @@ def lambda_handler(event: dict, _context: dict) -> dict:
                     "for the provided date and source, something likely went wrong."
                 )
             elif run_type == "daily":
-                result[
-                    "success"
-                ] = "There were no daily new/updated/deleted records to harvest."
+                result["success"] = (
+                    "There were no daily new/updated/deleted records to harvest."
+                )
             return result
         logger.info(
             "%s extracted files found in TIMDEX S3 bucket for date '%s' and source '%s'",
