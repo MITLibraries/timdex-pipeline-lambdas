@@ -203,11 +203,12 @@
                 "essential"
             ],
             "hashes": [
-                "sha256:b8e54ac867d9f60cec221a8bb6c9b2963ce3e297134f181d429d34dd40d61969",
-                "sha256:d9df5d457cdedf46fc8ce223d82360ccc227cebec4c3294ddf87cb013042cad6"
+                "sha256:3313131273902a98046322f8c19925ecd532924eba64e9bfc0528d046aeb6d8c",
+                "sha256:dd6f11c41662901083b1d8eff7e85111c976bda43166ec14fb46a91936575af6"
             ],
+            "index": "pypi",
             "markers": "python_version >= '3.8'",
-            "version": "==1.34.99"
+            "version": "==1.34.103"
         },
         "botocore": {
             "hashes": [
