@@ -13,6 +13,8 @@ def _test_env(monkeypatch):
     monkeypatch.setenv("TIMDEX_ALMA_EXPORT_BUCKET_ID", "test-alma-bucket")
     monkeypatch.setenv("TIMDEX_S3_EXTRACT_BUCKET_ID", "test-timdex-bucket")
     monkeypatch.setenv("WORKSPACE", "test")
+    # NOTE: FEATURE FLAG: remove after v2 work is complete
+    monkeypatch.setenv("ETL_VERSION", "1")
 
 
 @pytest.fixture(autouse=True)

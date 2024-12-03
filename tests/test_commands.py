@@ -272,7 +272,7 @@ def test_generate_load_commands_full_with_deletes_logs_error(caplog):
     ) in caplog.record_tuples
 
 
-def test_generate_load_command_unexpected_input():
+def test_generate_load_commands_unexpected_input():
     transform_output_files = [
         "alma/alma-2022-01-02-full-transformed-records-to-index.json"
     ]

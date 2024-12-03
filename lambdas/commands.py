@@ -72,10 +72,24 @@ def generate_transform_commands(
     input_data: dict,
     run_date: str,
     timdex_bucket: str,
-) -> dict:
+) -> dict[str, list[dict]]:
     """Generate task run command for TIMDEX transform."""
-    files_to_transform: list[dict] = []
+    # NOTE: FEATURE FLAG: branching logic will be removed after v2 work is complete
+    etl_version = config.get_etl_version()
+    match etl_version:
+        case 1:
+            return _etl_v1_generate_transform_commands_method(
+                extract_output_files, input_data, run_date, timdex_bucket
+            )
+        case 2:
+            return _etl_v2_generate_transform_commands_method()
 
+
+# NOTE: FEATURE FLAG: branching logic + method removed after v2 work is complete
+def _etl_v1_generate_transform_commands_method(
+    extract_output_files: list[str], input_data: dict, run_date: str, timdex_bucket: str
+) -> dict[str, list[dict]]:
+    files_to_transform: list[dict] = []
     source = input_data["source"]
     transform_output_prefix = helpers.generate_step_output_prefix(
         source, run_date, input_data["run-type"], "transform"
@@ -96,14 +110,33 @@ def generate_transform_commands(
         ]
 
         files_to_transform.append({"transform-command": transform_command})
-
     return {"files-to-transform": files_to_transform}
+
+
+# NOTE: FEATURE FLAG: branching logic + method removed after v2 work is complete
+def _etl_v2_generate_transform_commands_method() -> dict[str, list[dict]]:
+    raise NotImplementedError
 
 
 def generate_load_commands(
     transform_output_files: list[str], run_type: str, source: str, timdex_bucket: str
 ) -> dict:
     """Generate task run command for loading records into OpenSearch."""
+    # NOTE: FEATURE FLAG: branching logic will be removed after v2 work is complete
+    etl_version = config.get_etl_version()
+    match etl_version:
+        case 1:
+            return _etl_v1_generate_load_commands_method(
+                transform_output_files, run_type, source, timdex_bucket
+            )
+        case 2:
+            return _etl_v2_generate_load_commands_method()
+
+
+# NOTE: FEATURE FLAG: branching logic + method removed after v2 work is complete
+def _etl_v1_generate_load_commands_method(
+    transform_output_files: list[str], run_type: str, source: str, timdex_bucket: str
+) -> dict:
     if run_type == "daily":
         files_to_index = []
         files_to_delete = []
@@ -169,3 +202,8 @@ def generate_load_commands(
     return {
         "failure": "Something unexpected went wrong. Please check input and try again."
     }
+
+
+# NOTE: FEATURE FLAG: branching logic + method removed after v2 work is complete
+def _etl_v2_generate_load_commands_method() -> dict:
+    raise NotImplementedError
