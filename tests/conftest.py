@@ -60,3 +60,16 @@ def mocked_s3():
 def s3_client():
     # ruff: noqa: PT022
     yield boto3.client("s3")
+
+
+@pytest.fixture
+def run_id():
+    return "run-abc-123"
+
+
+# NOTE: FEATURE FLAG: remove after v2 work is complete
+@pytest.fixture
+def etl_version_2(monkeypatch):
+    etl_version = 2
+    monkeypatch.setenv("ETL_VERSION", f"{etl_version}")
+    return etl_version

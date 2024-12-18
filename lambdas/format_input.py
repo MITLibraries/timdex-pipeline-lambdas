@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import uuid
 
 from lambdas import alma_prep, commands, config, errors, helpers
 
@@ -19,6 +20,7 @@ def lambda_handler(event: dict, _context: dict) -> dict:
     run_type = event["run-type"]
     source = event["source"]
     next_step = event["next-step"]
+    run_id = event.get("run-id", str(uuid.uuid4()))
     timdex_bucket = os.environ["TIMDEX_S3_EXTRACT_BUCKET_ID"]
 
     result = {
@@ -67,7 +69,7 @@ def lambda_handler(event: dict, _context: dict) -> dict:
         )
         result["next-step"] = "load"
         result["transform"] = commands.generate_transform_commands(
-            extract_output_files, event, run_date, timdex_bucket
+            extract_output_files, event, run_date, timdex_bucket, run_id
         )
 
     elif next_step == "load":

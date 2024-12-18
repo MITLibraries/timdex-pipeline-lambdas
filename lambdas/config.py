@@ -13,6 +13,7 @@ REQUIRED_ENV = {
     "TIMDEX_S3_EXTRACT_BUCKET_ID",
     "WORKSPACE",
 }
+# NOTE: FEATURE FLAG: add "run-id" after v1 pathways are removed
 REQUIRED_FIELDS = ("next-step", "run-date", "run-type", "source")
 REQUIRED_OAI_HARVEST_FIELDS = ("oai-pmh-host", "oai-metadata-format")
 VALID_DATE_FORMATS = ("%Y-%m-%d", "%Y-%m-%dT%H:%M:%SZ")
