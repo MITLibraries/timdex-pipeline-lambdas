@@ -72,6 +72,7 @@ def generate_transform_commands(
     input_data: dict,
     run_date: str,
     timdex_bucket: str,
+    run_id: str,
 ) -> dict[str, list[dict]]:
     """Generate task run command for TIMDEX transform."""
     # NOTE: FEATURE FLAG: branching logic will be removed after v2 work is complete
@@ -82,7 +83,9 @@ def generate_transform_commands(
                 extract_output_files, input_data, run_date, timdex_bucket
             )
         case 2:
-            return _etl_v2_generate_transform_commands_method()
+            return _etl_v2_generate_transform_commands_method(
+                extract_output_files, input_data, timdex_bucket, run_id
+            )
 
 
 # NOTE: FEATURE FLAG: branching logic + method removed after v2 work is complete
@@ -114,8 +117,23 @@ def _etl_v1_generate_transform_commands_method(
 
 
 # NOTE: FEATURE FLAG: branching logic + method removed after v2 work is complete
-def _etl_v2_generate_transform_commands_method() -> dict[str, list[dict]]:
-    raise NotImplementedError
+def _etl_v2_generate_transform_commands_method(
+    extract_output_files: list[str],
+    input_data: dict,
+    timdex_bucket: str,
+    run_id: str,
+) -> dict[str, list[dict]]:
+    files_to_transform: list[dict] = []
+    source = input_data["source"]
+    for extract_output_file in extract_output_files:
+        transform_command = [
+            f"--input-file=s3://{timdex_bucket}/{extract_output_file}",
+            f"--output-location=s3://{timdex_bucket}/dataset",
+            f"--source={source}",
+            f"--run-id={run_id}",
+        ]
+        files_to_transform.append({"transform-command": transform_command})
+    return {"files-to-transform": files_to_transform}
 
 
 def generate_load_commands(

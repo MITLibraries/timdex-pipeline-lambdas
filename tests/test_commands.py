@@ -77,7 +77,7 @@ def test_generate_extract_command_geoharvester():
     }
 
 
-def test_generate_transform_commands_required_input_fields():
+def test_generate_transform_commands_required_input_fields(etl_version_2, run_id):
     input_data = {
         "next-step": "transform",
         "run-date": "2022-01-02T12:13:14Z",
@@ -88,23 +88,27 @@ def test_generate_transform_commands_required_input_fields():
         "testsource/testsource-2022-01-02-full-extracted-records-to-index.xml"
     ]
     assert commands.generate_transform_commands(
-        extract_output_files, input_data, "2022-01-02", "test-timdex-bucket"
+        extract_output_files,
+        input_data,
+        "2022-01-02",
+        "test-timdex-bucket",
+        run_id,
     ) == {
         "files-to-transform": [
             {
                 "transform-command": [
                     "--input-file=s3://test-timdex-bucket/testsource/"
                     "testsource-2022-01-02-full-extracted-records-to-index.xml",
-                    "--output-file=s3://test-timdex-bucket/testsource/"
-                    "testsource-2022-01-02-full-transformed-records-to-index.json",
+                    "--output-location=s3://test-timdex-bucket/dataset",
                     "--source=testsource",
+                    f"--run-id={run_id}",
                 ]
             }
         ]
     }
 
 
-def test_generate_transform_commands_all_input_fields():
+def test_generate_transform_commands_all_input_fields(etl_version_2, run_id):
     input_data = {
         "next-step": "transform",
         "run-date": "2022-01-02T12:13:14Z",
@@ -117,34 +121,34 @@ def test_generate_transform_commands_all_input_fields():
         "testsource/testsource-2022-01-02-daily-extracted-records-to-delete.xml",
     ]
     assert commands.generate_transform_commands(
-        extract_output_files, input_data, "2022-01-02", "test-timdex-bucket"
+        extract_output_files, input_data, "2022-01-02", "test-timdex-bucket", run_id
     ) == {
         "files-to-transform": [
             {
                 "transform-command": [
                     "--input-file=s3://test-timdex-bucket/testsource/"
                     "testsource-2022-01-02-daily-extracted-records-to-index_01.xml",
-                    "--output-file=s3://test-timdex-bucket/testsource/"
-                    "testsource-2022-01-02-daily-transformed-records-to-index_01.json",
+                    "--output-location=s3://test-timdex-bucket/dataset",
                     "--source=testsource",
+                    f"--run-id={run_id}",
                 ]
             },
             {
                 "transform-command": [
                     "--input-file=s3://test-timdex-bucket/testsource/"
                     "testsource-2022-01-02-daily-extracted-records-to-index_02.xml",
-                    "--output-file=s3://test-timdex-bucket/testsource/"
-                    "testsource-2022-01-02-daily-transformed-records-to-index_02.json",
+                    "--output-location=s3://test-timdex-bucket/dataset",
                     "--source=testsource",
+                    f"--run-id={run_id}",
                 ]
             },
             {
                 "transform-command": [
                     "--input-file=s3://test-timdex-bucket/testsource/"
                     "testsource-2022-01-02-daily-extracted-records-to-delete.xml",
-                    "--output-file=s3://test-timdex-bucket/testsource/"
-                    "testsource-2022-01-02-daily-transformed-records-to-delete.txt",
+                    "--output-location=s3://test-timdex-bucket/dataset",
                     "--source=testsource",
+                    f"--run-id={run_id}",
                 ]
             },
         ]
