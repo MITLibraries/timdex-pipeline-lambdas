@@ -6,6 +6,7 @@ name = "pypi"
 [packages]
 boto3 = "*"
 smart-open = "*"
+timdex-dataset-api = {git = "git+https://github.com/MITLibraries/timdex-dataset-api.git"}
 
 [dev-packages]
 black = "*"
@@ -17,6 +18,7 @@ mypy = "*"
 pre-commit = "*"
 pytest = "*"
 ruff = "*"
+ipython = "*"
 
 [requires]
 python_version = "3.12"

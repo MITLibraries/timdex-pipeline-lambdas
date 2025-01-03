@@ -136,23 +136,8 @@ def _etl_v2_generate_transform_commands_method(
     return {"files-to-transform": files_to_transform}
 
 
-def generate_load_commands(
-    transform_output_files: list[str], run_type: str, source: str, timdex_bucket: str
-) -> dict:
-    """Generate task run command for loading records into OpenSearch."""
-    # NOTE: FEATURE FLAG: branching logic will be removed after v2 work is complete
-    etl_version = config.get_etl_version()
-    match etl_version:
-        case 1:
-            return _etl_v1_generate_load_commands_method(
-                transform_output_files, run_type, source, timdex_bucket
-            )
-        case 2:
-            return _etl_v2_generate_load_commands_method()
-
-
-# NOTE: FEATURE FLAG: branching logic + method removed after v2 work is complete
-def _etl_v1_generate_load_commands_method(
+# NOTE: FEATURE FLAG: _v1 suffix added, to be removed entirely when v2 work done
+def generate_load_commands_v1(
     transform_output_files: list[str], run_type: str, source: str, timdex_bucket: str
 ) -> dict:
     if run_type == "daily":
@@ -222,6 +207,39 @@ def _etl_v1_generate_load_commands_method(
     }
 
 
-# NOTE: FEATURE FLAG: branching logic + method removed after v2 work is complete
-def _etl_v2_generate_load_commands_method() -> dict:
-    raise NotImplementedError
+def generate_load_commands(
+    source: str,
+    run_date: str,
+    run_type: str,
+    run_id: str,
+    timdex_bucket: str,
+) -> dict:
+    dataset_location = f"s3://{timdex_bucket}/dataset"
+
+    update_command = [
+        "bulk-update",
+        "--run-date",
+        run_date,
+        "--run-id",
+        run_id,
+    ]
+
+    if run_type == "daily":
+        update_command.extend(["--source", source, dataset_location])
+        return {"bulk-update-command": update_command}
+
+    if run_type == "full":
+        new_index_name = helpers.generate_index_name(source)
+        update_command.extend(["--index", new_index_name, dataset_location])
+        promote_index_command = ["promote", "--index", new_index_name]
+        for alias, sources in config.INDEX_ALIASES.items():
+            if source in sources:
+                promote_index_command.append("--alias")
+                promote_index_command.append(alias)
+        return {
+            "create-index-command": ["create", "--index", new_index_name],
+            "bulk-update-command": update_command,
+            "promote-index-command": promote_index_command,
+        }
+
+    return {"failure": f"Unexpected run-type: '{run_type}'"}

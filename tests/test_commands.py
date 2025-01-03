@@ -155,100 +155,70 @@ def test_generate_transform_commands_all_input_fields(etl_version_2, run_id):
     }
 
 
-def test_generate_load_commands_daily():
-    transform_output_files = [
-        "testsource/testsource-2022-01-02-daily-transformed-records-to-index_01.json",
-        "testsource/testsource-2022-01-02-daily-transformed-records-to-index_02.json",
-        "testsource/testsource-2022-01-02-daily-transformed-records-to-delete.txt",
-    ]
+def test_generate_load_commands_daily(etl_version_2, run_id):
     assert commands.generate_load_commands(
-        transform_output_files, "daily", "testsource", "test-timdex-bucket"
+        "testsource",
+        "2022-01-02",
+        "daily",
+        "run-abc-123",
+        "test-timdex-bucket",
     ) == {
-        "files-to-index": [
-            {
-                "load-command": [
-                    "bulk-index",
-                    "--source",
-                    "testsource",
-                    "s3://test-timdex-bucket/testsource/"
-                    "testsource-2022-01-02-daily-transformed-records-to-index_01.json",
-                ]
-            },
-            {
-                "load-command": [
-                    "bulk-index",
-                    "--source",
-                    "testsource",
-                    "s3://test-timdex-bucket/testsource/"
-                    "testsource-2022-01-02-daily-transformed-records-to-index_02.json",
-                ]
-            },
-        ],
-        "files-to-delete": [
-            {
-                "load-command": [
-                    "bulk-delete",
-                    "--source",
-                    "testsource",
-                    "s3://test-timdex-bucket/testsource/"
-                    "testsource-2022-01-02-daily-transformed-records-to-delete.txt",
-                ]
-            }
-        ],
+        "bulk-update-command": [
+            "bulk-update",
+            "--run-date",
+            "2022-01-02",
+            "--run-id",
+            "run-abc-123",
+            "--source",
+            "testsource",
+            "s3://test-timdex-bucket/dataset",
+        ]
     }
 
 
 @freeze_time("2022-01-02 12:13:14")
-def test_generate_load_commands_full_not_aliased():
-    transform_output_files = [
-        "testsource/testsource-2022-01-02-full-transformed-records-to-index.json"
-    ]
+def test_generate_load_commands_full_no_alias(etl_version_2, run_id):
     assert commands.generate_load_commands(
-        transform_output_files, "full", "testsource", "test-timdex-bucket"
+        "testsource",
+        "2022-01-02",
+        "full",
+        "run-abc-123",
+        "test-timdex-bucket",
     ) == {
         "create-index-command": ["create", "--index", "testsource-2022-01-02t12-13-14"],
-        "files-to-index": [
-            {
-                "load-command": [
-                    "bulk-index",
-                    "--index",
-                    "testsource-2022-01-02t12-13-14",
-                    (
-                        "s3://test-timdex-bucket/testsource/"
-                        "testsource-2022-01-02-full-transformed-records-to-index.json"
-                    ),
-                ]
-            }
-        ],
-        "promote-index-command": [
-            "promote",
+        "bulk-update-command": [
+            "bulk-update",
+            "--run-date",
+            "2022-01-02",
+            "--run-id",
+            "run-abc-123",
             "--index",
             "testsource-2022-01-02t12-13-14",
+            "s3://test-timdex-bucket/dataset",
         ],
+        "promote-index-command": ["promote", "--index", "testsource-2022-01-02t12-13-14"],
     }
 
 
 @freeze_time("2022-01-02 12:13:14")
-def test_generate_load_commands_full_aliased():
-    transform_output_files = [
-        "alma/alma-2022-01-02-full-transformed-records-to-index.json"
-    ]
+def test_generate_load_commands_full_with_alias(etl_version_2, run_id):
     assert commands.generate_load_commands(
-        transform_output_files, "full", "alma", "test-timdex-bucket"
+        "alma",
+        "2022-01-02",
+        "full",
+        "run-abc-123",
+        "test-timdex-bucket",
     ) == {
         "create-index-command": ["create", "--index", "alma-2022-01-02t12-13-14"],
-        "files-to-index": [
-            {
-                "load-command": [
-                    "bulk-index",
-                    "--index",
-                    "alma-2022-01-02t12-13-14",
-                    (
-                        "s3://test-timdex-bucket/alma/"
-                        "alma-2022-01-02-full-transformed-records-to-index.json"
-                    ),
-                ]
-            }
+        "bulk-update-command": [
+            "bulk-update",
+            "--run-date",
+            "2022-01-02",
+            "--run-id",
+            "run-abc-123",
+            "--index",
+            "alma-2022-01-02t12-13-14",
+            "s3://test-timdex-bucket/dataset",
         ],
         "promote-index-command": [
             "promote",
@@ -260,26 +230,11 @@ def test_generate_load_commands_full_aliased():
     }
 
 
-@freeze_time("2022-01-02 12:13:14")
-def test_generate_load_commands_full_with_deletes_logs_error(caplog):
-    transform_output_files = [
-        "alma/alma-2022-01-02-full-transformed-records-to-delete.txt"
-    ]
-    commands.generate_load_commands(
-        transform_output_files, "full", "alma", "test-timdex-bucket"
-    )
-    assert (
-        "lambdas.commands",
-        40,
-        "alma full ingest had a deleted records file: "
-        "alma/alma-2022-01-02-full-transformed-records-to-delete.txt",
-    ) in caplog.record_tuples
-
-
-def test_generate_load_commands_unexpected_input():
-    transform_output_files = [
-        "alma/alma-2022-01-02-full-transformed-records-to-index.json"
-    ]
+def test_generate_load_commands_unhandled_run_type(etl_version_2, run_id):
     assert commands.generate_load_commands(
-        transform_output_files, "wrong", "alma", "test-timdex-bucket"
-    ) == {"failure": "Something unexpected went wrong. Please check input and try again."}
+        "alma",
+        "2022-01-02",
+        "not-supported-run-type",
+        "run-abc-123",
+        "test-timdex-bucket",
+    ) == {"failure": "Unexpected run-type: 'not-supported-run-type'"}

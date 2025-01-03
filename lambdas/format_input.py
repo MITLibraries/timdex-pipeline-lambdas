@@ -1,3 +1,5 @@
+# ruff: noqa: PLR0911, PLR2004
+
 import json
 import logging
 import os
@@ -39,8 +41,9 @@ def lambda_handler(event: dict, _context: dict) -> dict:
         result["extract"] = commands.generate_extract_command(
             event, run_date, timdex_bucket, verbose
         )
+        return result
 
-    elif next_step == "transform":
+    if next_step == "transform":
         try:
             if source == "alma":
                 alma_prep.prepare_alma_export_files(run_date, run_type, timdex_bucket)
@@ -71,23 +74,42 @@ def lambda_handler(event: dict, _context: dict) -> dict:
         result["transform"] = commands.generate_transform_commands(
             extract_output_files, event, run_date, timdex_bucket, run_id
         )
+        return result
 
-    elif next_step == "load":
-        try:
-            transform_output_files = helpers.list_s3_files_by_prefix(
-                timdex_bucket,
-                helpers.generate_step_output_prefix(
-                    source, run_date, run_type, "transform"
-                ),
-            )
-        except errors.NoFilesError:
-            result["failure"] = (
-                "There were no transformed files present in the TIMDEX S3 bucket for "
-                "the provided date and source, something likely went wrong."
+    if next_step == "load":
+        # NOTE: FEATURE FLAG: branching logic will be removed after v2 work is complete
+        etl_version = config.get_etl_version()
+
+        if etl_version == 1:
+            try:
+                transform_output_files = helpers.list_s3_files_by_prefix(
+                    timdex_bucket,
+                    helpers.generate_step_output_prefix(
+                        source, run_date, run_type, "transform"
+                    ),
+                )
+                result["load"] = commands.generate_load_commands_v1(
+                    transform_output_files, run_type, source, timdex_bucket
+                )
+                return result  # noqa: TRY300
+            except errors.NoFilesError:
+                result["failure"] = (
+                    "There were no transformed files present in the TIMDEX S3 bucket for "
+                    "the provided date and source, something likely went wrong."
+                )
+                return result
+
+        elif etl_version == 2:
+            if not helpers.dataset_records_exist_for_run(timdex_bucket, run_date, run_id):
+                result["failure"] = (
+                    "No records were found in the TIMDEX dataset for run_date "
+                    f"'{run_date}', run_id '{run_id}'."
+                )
+                return result
+            result["load"] = commands.generate_load_commands(
+                source, run_date, run_type, run_id, timdex_bucket
             )
             return result
-        result["load"] = commands.generate_load_commands(
-            transform_output_files, run_type, source, timdex_bucket
-        )
 
-    return result
+    message = f"'next-step' not supported: '{next_step}'"
+    raise ValueError(message)

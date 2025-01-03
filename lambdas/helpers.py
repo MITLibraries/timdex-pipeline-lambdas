@@ -3,6 +3,7 @@ import logging
 from datetime import UTC, datetime, timedelta
 
 import boto3
+from timdex_dataset_api.dataset import TIMDEXDataset  # type: ignore[import-untyped]
 
 from lambdas import config, errors
 
@@ -103,3 +104,14 @@ def list_s3_files_by_prefix(bucket: str, prefix: str) -> list[str]:
         )
         raise errors.NoFilesError from error
     return s3_files
+
+
+def dataset_records_exist_for_run(bucket: str, run_date: str, run_id: str) -> bool:
+    """Query TIMDEX dataset to confirm records to load and/or delete.
+
+    A "run" is defined by a run-date + run-id, both provided as inputs to this lambda
+    invocation provided by the StepFunction.
+    """
+    td = TIMDEXDataset(location=f"s3://{bucket}/dataset")
+    td.load(run_date=run_date, run_id=run_id)
+    return td.row_count > 0
