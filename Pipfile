@@ -13,12 +13,12 @@ black = "*"
 boto3-stubs = {extras = ["essential"], version = "*"}
 coverage = "*"
 freezegun = "*"
+ipython = "*"
 moto = "*"
 mypy = "*"
 pre-commit = "*"
 pytest = "*"
 ruff = "*"
-ipython = "*"
 
 [requires]
 python_version = "3.12"
