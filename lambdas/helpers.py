@@ -3,6 +3,7 @@ import logging
 from datetime import UTC, datetime, timedelta
 
 import boto3
+import pyarrow.dataset as ds  # type: ignore[import-untyped]
 from timdex_dataset_api.dataset import TIMDEXDataset  # type: ignore[import-untyped]
 
 from lambdas import config, errors
@@ -110,8 +111,17 @@ def dataset_records_exist_for_run(bucket: str, run_date: str, run_id: str) -> bo
     """Query TIMDEX dataset to confirm records to load and/or delete.
 
     A "run" is defined by a run-date + run-id, both provided as inputs to this lambda
-    invocation provided by the StepFunction.
+    invocation provided by the StepFunction.  We are interested only in records where
+    action is "index" or "delete".  If zero records exist, or have action "skip" or
+    "error", we do not need to perform any load commands.
     """
     td = TIMDEXDataset(location=f"s3://{bucket}/dataset")
     td.load(run_date=run_date, run_id=run_id)
-    return td.row_count > 0
+    # NOTE: it is discouraged to use low level pyarrow functionality when using the
+    #  timdex-dataset-api library, particularly for these well-known use cases.  It is
+    #  planned to add this more nuanced filtering capabilities to the library and update
+    #  this function to use it.  In the interim, this low level call is functional.
+    record_count = td.dataset.count_rows(
+        filter=ds.field("action").isin(["index", "delete"])
+    )
+    return record_count > 0
