@@ -14,7 +14,7 @@ def lambda_handler(event: dict, _context: dict) -> dict:
     """Format data into the necessary input for TIMDEX pipeline processing."""
     config.verify_env()
     verbose = config.check_verbosity(event.get("verbose", False))
-    config.configure_logger(logging.getLogger(), verbose)
+    config.configure_logger(logging.getLogger(), verbose=verbose)
     logger.debug(json.dumps(event))
     config.validate_input(event)
 
