@@ -12,7 +12,7 @@ def generate_extract_command(
     timdex_bucket: str,
     verbose: bool,
 ) -> dict:
-    """Generate task run command for extract via OAI-PMH harvest."""
+    """Generate task run command for TIMDEX extract."""
     run_type = input_data["run-type"]
     source = input_data["source"]
     step = "extract"
@@ -70,59 +70,10 @@ def generate_extract_command(
 def generate_transform_commands(
     extract_output_files: list[str],
     input_data: dict,
-    run_date: str,
     timdex_bucket: str,
     run_id: str,
 ) -> dict[str, list[dict]]:
     """Generate task run command for TIMDEX transform."""
-    # NOTE: FEATURE FLAG: branching logic will be removed after v2 work is complete
-    etl_version = config.get_etl_version()
-    match etl_version:
-        case 1:
-            return _etl_v1_generate_transform_commands_method(
-                extract_output_files, input_data, run_date, timdex_bucket
-            )
-        case 2:
-            return _etl_v2_generate_transform_commands_method(
-                extract_output_files, input_data, timdex_bucket, run_id
-            )
-
-
-# NOTE: FEATURE FLAG: branching logic + method removed after v2 work is complete
-def _etl_v1_generate_transform_commands_method(
-    extract_output_files: list[str], input_data: dict, run_date: str, timdex_bucket: str
-) -> dict[str, list[dict]]:
-    files_to_transform: list[dict] = []
-    source = input_data["source"]
-    transform_output_prefix = helpers.generate_step_output_prefix(
-        source, run_date, input_data["run-type"], "transform"
-    )
-
-    for extract_output_file in extract_output_files:
-        load_type, sequence = helpers.get_load_type_and_sequence_from_timdex_filename(
-            extract_output_file
-        )
-        transform_output_file = helpers.generate_step_output_filename(
-            source, load_type, transform_output_prefix, "transform", sequence
-        )
-
-        transform_command = [
-            f"--input-file=s3://{timdex_bucket}/{extract_output_file}",
-            f"--output-file=s3://{timdex_bucket}/{transform_output_file}",
-            f"--source={source}",
-        ]
-
-        files_to_transform.append({"transform-command": transform_command})
-    return {"files-to-transform": files_to_transform}
-
-
-# NOTE: FEATURE FLAG: branching logic + method removed after v2 work is complete
-def _etl_v2_generate_transform_commands_method(
-    extract_output_files: list[str],
-    input_data: dict,
-    timdex_bucket: str,
-    run_id: str,
-) -> dict[str, list[dict]]:
     files_to_transform: list[dict] = []
     source = input_data["source"]
     for extract_output_file in extract_output_files:
@@ -136,77 +87,6 @@ def _etl_v2_generate_transform_commands_method(
     return {"files-to-transform": files_to_transform}
 
 
-# NOTE: FEATURE FLAG: _v1 suffix added, to be removed entirely when v2 work done
-def generate_load_commands_v1(
-    transform_output_files: list[str], run_type: str, source: str, timdex_bucket: str
-) -> dict:
-    if run_type == "daily":
-        files_to_index = []
-        files_to_delete = []
-
-        for transform_output_file in transform_output_files:
-            load_type, _ = helpers.get_load_type_and_sequence_from_timdex_filename(
-                transform_output_file
-            )
-            if load_type == "index":
-                load_command = [
-                    "bulk-index",
-                    "--source",
-                    source,
-                    f"s3://{timdex_bucket}/{transform_output_file}",
-                ]
-                files_to_index.append({"load-command": load_command})
-            elif load_type == "delete":
-                load_command = [
-                    "bulk-delete",
-                    "--source",
-                    source,
-                    f"s3://{timdex_bucket}/{transform_output_file}",
-                ]
-                files_to_delete.append({"load-command": load_command})
-
-        return {"files-to-index": files_to_index, "files-to-delete": files_to_delete}
-
-    if run_type == "full":
-        new_index_name = helpers.generate_index_name(source)
-
-        files_to_index = []
-        for transform_output_file in transform_output_files:
-            load_type, _ = helpers.get_load_type_and_sequence_from_timdex_filename(
-                transform_output_file
-            )
-            if load_type == "delete":
-                logger.error(
-                    "%s full ingest had a deleted records file: %s",
-                    source,
-                    transform_output_file,
-                )
-                continue
-            load_command = [
-                "bulk-index",
-                "--index",
-                new_index_name,
-                f"s3://{timdex_bucket}/{transform_output_file}",
-            ]
-            files_to_index.append({"load-command": load_command})
-
-        promote_index_command = ["promote", "--index", new_index_name]
-        for alias, sources in config.INDEX_ALIASES.items():
-            if source in sources:
-                promote_index_command.append("--alias")
-                promote_index_command.append(alias)
-
-        return {
-            "create-index-command": ["create", "--index", new_index_name],
-            "files-to-index": files_to_index,
-            "promote-index-command": promote_index_command,
-        }
-
-    return {
-        "failure": "Something unexpected went wrong. Please check input and try again."
-    }
-
-
 def generate_load_commands(
     source: str,
     run_date: str,
@@ -214,6 +94,7 @@ def generate_load_commands(
     run_id: str,
     timdex_bucket: str,
 ) -> dict:
+    """Generate task run command for TIMDEX load."""
     dataset_location = f"s3://{timdex_bucket}/dataset"
 
     update_command = [

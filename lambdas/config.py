@@ -1,6 +1,5 @@
 import logging
 import os
-from typing import Literal
 
 GIS_SOURCES = ["gismit", "gisogm"]
 INDEX_ALIASES = {
@@ -13,7 +12,6 @@ REQUIRED_ENV = {
     "TIMDEX_S3_EXTRACT_BUCKET_ID",
     "WORKSPACE",
 }
-# NOTE: FEATURE FLAG: add "run-id" after v1 pathways are removed
 REQUIRED_FIELDS = ("next-step", "run-date", "run-type", "source")
 REQUIRED_OAI_HARVEST_FIELDS = ("oai-pmh-host", "oai-metadata-format")
 VALID_DATE_FORMATS = ("%Y-%m-%d", "%Y-%m-%dT%H:%M:%SZ")
@@ -63,15 +61,6 @@ def configure_logger(
         f"Logger '{root_logger.name}' configured with level="
         f"{logging.getLevelName(root_logger.getEffectiveLevel())}"
     )
-
-
-# NOTE: FEATURE FLAG: function will be removed after v2 work is complete
-def get_etl_version() -> Literal[1, 2]:
-    etl_version = int(os.environ.get("ETL_VERSION", "1"))
-    if etl_version not in [1, 2]:
-        message = f"ETL_VERSION '{etl_version}' not supported"
-        raise ValueError(message)
-    return etl_version  # type: ignore[return-value]
 
 
 def validate_input(input_data: dict) -> None:

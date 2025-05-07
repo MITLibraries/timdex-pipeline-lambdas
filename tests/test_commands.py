@@ -77,7 +77,7 @@ def test_generate_extract_command_geoharvester():
     }
 
 
-def test_generate_transform_commands_required_input_fields(etl_version_2, run_id):
+def test_generate_transform_commands_required_input_fields(run_id):
     input_data = {
         "next-step": "transform",
         "run-date": "2022-01-02T12:13:14Z",
@@ -90,7 +90,6 @@ def test_generate_transform_commands_required_input_fields(etl_version_2, run_id
     assert commands.generate_transform_commands(
         extract_output_files,
         input_data,
-        "2022-01-02",
         "test-timdex-bucket",
         run_id,
     ) == {
@@ -108,7 +107,7 @@ def test_generate_transform_commands_required_input_fields(etl_version_2, run_id
     }
 
 
-def test_generate_transform_commands_all_input_fields(etl_version_2, run_id):
+def test_generate_transform_commands_all_input_fields(run_id):
     input_data = {
         "next-step": "transform",
         "run-date": "2022-01-02T12:13:14Z",
@@ -121,7 +120,7 @@ def test_generate_transform_commands_all_input_fields(etl_version_2, run_id):
         "testsource/testsource-2022-01-02-daily-extracted-records-to-delete.xml",
     ]
     assert commands.generate_transform_commands(
-        extract_output_files, input_data, "2022-01-02", "test-timdex-bucket", run_id
+        extract_output_files, input_data, "test-timdex-bucket", run_id
     ) == {
         "files-to-transform": [
             {
@@ -155,7 +154,7 @@ def test_generate_transform_commands_all_input_fields(etl_version_2, run_id):
     }
 
 
-def test_generate_load_commands_daily(etl_version_2, run_id):
+def test_generate_load_commands_daily(run_id):
     assert commands.generate_load_commands(
         "testsource",
         "2022-01-02",
@@ -177,7 +176,7 @@ def test_generate_load_commands_daily(etl_version_2, run_id):
 
 
 @freeze_time("2022-01-02 12:13:14")
-def test_generate_load_commands_full_no_alias(etl_version_2, run_id):
+def test_generate_load_commands_full_no_alias(run_id):
     assert commands.generate_load_commands(
         "testsource",
         "2022-01-02",
@@ -201,7 +200,7 @@ def test_generate_load_commands_full_no_alias(etl_version_2, run_id):
 
 
 @freeze_time("2022-01-02 12:13:14")
-def test_generate_load_commands_full_with_alias(etl_version_2, run_id):
+def test_generate_load_commands_full_with_alias(run_id):
     assert commands.generate_load_commands(
         "alma",
         "2022-01-02",
@@ -230,7 +229,7 @@ def test_generate_load_commands_full_with_alias(etl_version_2, run_id):
     }
 
 
-def test_generate_load_commands_unhandled_run_type(etl_version_2, run_id):
+def test_generate_load_commands_unhandled_run_type(run_id):
     assert commands.generate_load_commands(
         "alma",
         "2022-01-02",

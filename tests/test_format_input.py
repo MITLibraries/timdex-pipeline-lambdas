@@ -3,7 +3,7 @@ from unittest.mock import patch
 from lambdas import format_input
 
 
-def test_lambda_handler_with_next_step_extract(etl_version_2):
+def test_lambda_handler_with_next_step_extract():
     event = {
         "run-date": "2022-01-02T12:13:14Z",
         "run-type": "daily",
@@ -34,7 +34,7 @@ def test_lambda_handler_with_next_step_extract(etl_version_2):
     }
 
 
-def test_lambda_handler_with_next_step_transform_files_present(etl_version_2, s3_client):
+def test_lambda_handler_with_next_step_transform_files_present(s3_client):
     s3_client.put_object(
         Bucket="test-timdex-bucket",
         Key="testsource/testsource-2022-01-02-daily-extracted-records-to-index.xml",
@@ -70,7 +70,7 @@ def test_lambda_handler_with_next_step_transform_files_present(etl_version_2, s3
     }
 
 
-def test_lambda_handler_with_next_step_transform_alma_files_present(etl_version_2):
+def test_lambda_handler_with_next_step_transform_alma_files_present():
     event = {
         "run-date": "2022-09-12",
         "run-type": "daily",
@@ -119,7 +119,7 @@ def test_lambda_handler_with_next_step_transform_alma_files_present(etl_version_
     }
 
 
-def test_lambda_handler_with_next_step_transform_no_files_present_alma(etl_version_2):
+def test_lambda_handler_with_next_step_transform_no_files_present_alma():
     event = {
         "run-date": "2022-01-02",
         "run-type": "daily",
@@ -137,7 +137,7 @@ def test_lambda_handler_with_next_step_transform_no_files_present_alma(etl_versi
     }
 
 
-def test_lambda_handler_with_next_step_transform_no_files_present_full(etl_version_2):
+def test_lambda_handler_with_next_step_transform_no_files_present_full():
     event = {
         "run-date": "2022-01-02T12:13:14Z",
         "run-type": "full",
@@ -155,7 +155,7 @@ def test_lambda_handler_with_next_step_transform_no_files_present_full(etl_versi
     }
 
 
-def test_lambda_handler_with_next_step_transform_no_files_present_daily(etl_version_2):
+def test_lambda_handler_with_next_step_transform_no_files_present_daily():
     event = {
         "run-date": "2022-01-02T12:13:14Z",
         "run-type": "daily",
@@ -172,7 +172,7 @@ def test_lambda_handler_with_next_step_transform_no_files_present_daily(etl_vers
     }
 
 
-def test_lambda_handler_with_next_step_load_files_present(etl_version_2, s3_client):
+def test_lambda_handler_with_next_step_load_files_present(s3_client):
     event = {
         "run-date": "2022-01-02T12:13:14Z",
         "run-type": "daily",
@@ -207,7 +207,7 @@ def test_lambda_handler_with_next_step_load_files_present(etl_version_2, s3_clie
     }
 
 
-def test_lambda_handler_with_next_step_load_no_files_present(etl_version_2):
+def test_lambda_handler_with_next_step_load_no_files_present():
     event = {
         "run-date": "2022-01-02",
         "run-type": "daily",
