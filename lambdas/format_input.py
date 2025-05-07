@@ -72,44 +72,21 @@ def lambda_handler(event: dict, _context: dict) -> dict:
         )
         result["next-step"] = "load"
         result["transform"] = commands.generate_transform_commands(
-            extract_output_files, event, run_date, timdex_bucket, run_id
+            extract_output_files, event, timdex_bucket, run_id
         )
         return result
 
     if next_step == "load":
-        # NOTE: FEATURE FLAG: branching logic will be removed after v2 work is complete
-        etl_version = config.get_etl_version()
-
-        if etl_version == 1:
-            try:
-                transform_output_files = helpers.list_s3_files_by_prefix(
-                    timdex_bucket,
-                    helpers.generate_step_output_prefix(
-                        source, run_date, run_type, "transform"
-                    ),
-                )
-                result["load"] = commands.generate_load_commands_v1(
-                    transform_output_files, run_type, source, timdex_bucket
-                )
-                return result  # noqa: TRY300
-            except errors.NoFilesError:
-                result["failure"] = (
-                    "There were no transformed files present in the TIMDEX S3 bucket for "
-                    "the provided date and source, something likely went wrong."
-                )
-                return result
-
-        elif etl_version == 2:
-            if not helpers.dataset_records_exist_for_run(timdex_bucket, run_date, run_id):
-                result["failure"] = (
-                    "No records were found in the TIMDEX dataset for run_date "
-                    f"'{run_date}', run_id '{run_id}'."
-                )
-                return result
-            result["load"] = commands.generate_load_commands(
-                source, run_date, run_type, run_id, timdex_bucket
+        if not helpers.dataset_records_exist_for_run(timdex_bucket, run_date, run_id):
+            result["failure"] = (
+                "No records were found in the TIMDEX dataset for run_date "
+                f"'{run_date}', run_id '{run_id}'."
             )
             return result
+        result["load"] = commands.generate_load_commands(
+            source, run_date, run_type, run_id, timdex_bucket
+        )
+        return result
 
     message = f"'next-step' not supported: '{next_step}'"
     raise ValueError(message)
