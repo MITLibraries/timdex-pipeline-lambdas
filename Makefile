@@ -18,6 +18,7 @@ install: ## Install dependencies
 
 update: install # update all Python dependencies
 	pipenv clean
+	pipenv update git+https://github.com/MITLibraries/timdex-dataset-api.git
 	pipenv update --dev
 
 ### Test commands ###
