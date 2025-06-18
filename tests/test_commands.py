@@ -77,7 +77,7 @@ def test_generate_extract_command_geoharvester():
     }
 
 
-def test_generate_transform_commands_required_input_fields(run_id):
+def test_generate_transform_commands_required_input_fields(run_id, run_timestamp):
     input_data = {
         "next-step": "transform",
         "run-date": "2022-01-02T12:13:14Z",
@@ -92,6 +92,7 @@ def test_generate_transform_commands_required_input_fields(run_id):
         input_data,
         "test-timdex-bucket",
         run_id,
+        run_timestamp,
     ) == {
         "files-to-transform": [
             {
@@ -101,13 +102,14 @@ def test_generate_transform_commands_required_input_fields(run_id):
                     "--output-location=s3://test-timdex-bucket/dataset",
                     "--source=testsource",
                     f"--run-id={run_id}",
+                    f"--run-timestamp={run_timestamp}",
                 ]
             }
         ]
     }
 
 
-def test_generate_transform_commands_all_input_fields(run_id):
+def test_generate_transform_commands_all_input_fields(run_id, run_timestamp):
     input_data = {
         "next-step": "transform",
         "run-date": "2022-01-02T12:13:14Z",
@@ -120,7 +122,11 @@ def test_generate_transform_commands_all_input_fields(run_id):
         "testsource/testsource-2022-01-02-daily-extracted-records-to-delete.xml",
     ]
     assert commands.generate_transform_commands(
-        extract_output_files, input_data, "test-timdex-bucket", run_id
+        extract_output_files,
+        input_data,
+        "test-timdex-bucket",
+        run_id,
+        run_timestamp,
     ) == {
         "files-to-transform": [
             {
@@ -130,6 +136,7 @@ def test_generate_transform_commands_all_input_fields(run_id):
                     "--output-location=s3://test-timdex-bucket/dataset",
                     "--source=testsource",
                     f"--run-id={run_id}",
+                    f"--run-timestamp={run_timestamp}",
                 ]
             },
             {
@@ -139,6 +146,7 @@ def test_generate_transform_commands_all_input_fields(run_id):
                     "--output-location=s3://test-timdex-bucket/dataset",
                     "--source=testsource",
                     f"--run-id={run_id}",
+                    f"--run-timestamp={run_timestamp}",
                 ]
             },
             {
@@ -148,6 +156,7 @@ def test_generate_transform_commands_all_input_fields(run_id):
                     "--output-location=s3://test-timdex-bucket/dataset",
                     "--source=testsource",
                     f"--run-id={run_id}",
+                    f"--run-timestamp={run_timestamp}",
                 ]
             },
         ]

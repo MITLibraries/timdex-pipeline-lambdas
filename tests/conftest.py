@@ -63,3 +63,8 @@ def s3_client():
 @pytest.fixture
 def run_id():
     return "run-abc-123"
+
+
+@pytest.fixture
+def run_timestamp():
+    return "2025-06-18T12:34:56.789000"
