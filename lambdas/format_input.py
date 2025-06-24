@@ -1,9 +1,8 @@
-# ruff: noqa: PLR0911, PLR2004
-
 import json
 import logging
 import os
 import uuid
+from datetime import UTC, datetime
 
 from lambdas import alma_prep, commands, config, errors, helpers
 
@@ -23,6 +22,7 @@ def lambda_handler(event: dict, _context: dict) -> dict:
     source = event["source"]
     next_step = event["next-step"]
     run_id = event.get("run-id", str(uuid.uuid4()))
+    run_timestamp = event.get("run-timestamp", datetime.now(UTC).isoformat())
     timdex_bucket = os.environ["TIMDEX_S3_EXTRACT_BUCKET_ID"]
 
     result = {
@@ -72,7 +72,7 @@ def lambda_handler(event: dict, _context: dict) -> dict:
         )
         result["next-step"] = "load"
         result["transform"] = commands.generate_transform_commands(
-            extract_output_files, event, timdex_bucket, run_id
+            extract_output_files, event, timdex_bucket, run_id, run_timestamp
         )
         return result
 

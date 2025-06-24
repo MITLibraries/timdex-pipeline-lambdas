@@ -72,6 +72,7 @@ def generate_transform_commands(
     input_data: dict,
     timdex_bucket: str,
     run_id: str,
+    run_timestamp: str,
 ) -> dict[str, list[dict]]:
     """Generate task run command for TIMDEX transform."""
     files_to_transform: list[dict] = []
@@ -82,6 +83,7 @@ def generate_transform_commands(
             f"--output-location=s3://{timdex_bucket}/dataset",
             f"--source={source}",
             f"--run-id={run_id}",
+            f"--run-timestamp={run_timestamp}",
         ]
         files_to_transform.append({"transform-command": transform_command})
     return {"files-to-transform": files_to_transform}

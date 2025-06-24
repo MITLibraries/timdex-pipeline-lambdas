@@ -27,6 +27,8 @@ Takes input JSON (usually from EventBridge although it can be passed to a manual
 
 - `oai-set-spec`: optional, only used when limiting the OAI-PMH record harvest to a single set from the source repository.
 - `verbose`: optional, if provided with value `"true"` (case-insensitive) will pass the `--verbose` option (debug level logging) to all pipeline task run commands.
+- `run-id`: an ETL run id that gets included for CLI commands generated; minted if not provided
+- `run-timestamp`: an ETL timestamp that gets included for CLI commands generated; minted if not provided
 
 ### Example Format Input Event
 
@@ -110,50 +112,51 @@ GitHub Actions is configured to update the Lambda function with every push to th
 
 - Run the default handler for the container
 
-   ```bash
-   docker run -e TIMDEX_ALMA_EXPORT_BUCKET_ID=alma-bucket-name \
-   -e TIMDEX_S3_EXTRACT_BUCKET_ID=timdex-bucket-name \
-   -e WORKSPACE=dev \
-   -p 9000:8080 timdex-pipeline-lambdas-dev:latest
-   ```
+ ```bash
+docker run -e TIMDEX_ALMA_EXPORT_BUCKET_ID=alma-bucket-name \
+-e TIMDEX_S3_EXTRACT_BUCKET_ID=timdex-bucket-name \
+-e WORKSPACE=dev \
+-p 9000:8080 timdex-pipeline-lambdas-dev:latest
+ ```
 
 - POST to the container
   Note: running this with next-step transform or load involves an actual S3 connection and is thus tricky to test locally. Better to push the image to Dev1 and test there.
 
-  ```bash
-  curl -XPOST "http://localhost:9000/2015-03-31/functions/function/invocations" -d '{
-    "next-step": "extract",
-    "run-date": "2022-03-10T16:30:23Z",
-    "run-type": "daily",
-    "source": "YOURSOURCE",
-    "verbose": "true",
-    "oai-pmh-host": "https://YOUR-OAI-SOURCE/oai",
-    "oai-metadata-format": "oai_dc",
-    "oai-set-spec": "YOUR-SET-SPEC"
-  }'
-  ```
+```bash
+curl -XPOST "http://localhost:9000/2015-03-31/functions/function/invocations" -d '{
+  "next-step": "extract",
+  "run-date": "2022-03-10T16:30:23Z",
+  "run-type": "daily",
+  "source": "YOURSOURCE",
+  "verbose": "true",
+  "oai-pmh-host": "https://YOUR-OAI-SOURCE/oai",
+  "oai-metadata-format": "oai_dc",
+  "oai-set-spec": "YOUR-SET-SPEC"
+}'
+```
   
 - Observe output
-  ```json
-  {
-    "run-date": "2022-03-10",
-    "run-type": "daily",
-    "source": "YOURSOURCE",
-    "verbose": true,
-    "next-step": "transform",
-    "extract": {
-      "extract-command": [
-        "--host=https://YOUR-OAI-SOURCE/oai",
-        "--output-file=s3://timdex-bucket-name/YOURSOURCE/YOURSOURCE-2022-03-09-daily-extracted-records-to-index.xml",
-        "--verbose",
-        "harvest",
-        "--metadata-format=oai_dc",
-        "--set-spec=YOUR-SET-SPEC",
-        "--from-date=2022-03-09"
-      ]
-    }
+- 
+```json
+{
+  "run-date": "2022-03-10",
+  "run-type": "daily",
+  "source": "YOURSOURCE",
+  "verbose": true,
+  "next-step": "transform",
+  "extract": {
+    "extract-command": [
+      "--host=https://YOUR-OAI-SOURCE/oai",
+      "--output-file=s3://timdex-bucket-name/YOURSOURCE/YOURSOURCE-2022-03-09-daily-extracted-records-to-index.xml",
+      "--verbose",
+      "harvest",
+      "--metadata-format=oai_dc",
+      "--set-spec=YOUR-SET-SPEC",
+      "--from-date=2022-03-09"
+    ]
   }
-  ```
+}
+```
 
 ### Running a Specific Handler Locally with Docker
 You can call any handler you copy into the container (see Dockerfile) by name as part of the `docker run` command.

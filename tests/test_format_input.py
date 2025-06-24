@@ -34,7 +34,7 @@ def test_lambda_handler_with_next_step_extract():
     }
 
 
-def test_lambda_handler_with_next_step_transform_files_present(s3_client):
+def test_lambda_handler_with_next_step_transform_files_present(s3_client, run_timestamp):
     s3_client.put_object(
         Bucket="test-timdex-bucket",
         Key="testsource/testsource-2022-01-02-daily-extracted-records-to-index.xml",
@@ -46,6 +46,7 @@ def test_lambda_handler_with_next_step_transform_files_present(s3_client):
         "next-step": "transform",
         "source": "testsource",
         "run-id": "run-abc-123",
+        "run-timestamp": run_timestamp,
         "verbose": "true",
     }
     assert format_input.lambda_handler(event, {}) == {
@@ -63,6 +64,7 @@ def test_lambda_handler_with_next_step_transform_files_present(s3_client):
                         "--output-location=s3://test-timdex-bucket/dataset",
                         "--source=testsource",
                         "--run-id=run-abc-123",
+                        f"--run-timestamp={run_timestamp}",
                     ]
                 }
             ]
@@ -70,13 +72,14 @@ def test_lambda_handler_with_next_step_transform_files_present(s3_client):
     }
 
 
-def test_lambda_handler_with_next_step_transform_alma_files_present():
+def test_lambda_handler_with_next_step_transform_alma_files_present(run_timestamp):
     event = {
         "run-date": "2022-09-12",
         "run-type": "daily",
         "next-step": "transform",
         "source": "alma",
         "run-id": "run-abc-123",
+        "run-timestamp": run_timestamp,
         "verbose": "False",
     }
     assert format_input.lambda_handler(event, {}) == {
@@ -94,6 +97,7 @@ def test_lambda_handler_with_next_step_transform_alma_files_present():
                         "--output-location=s3://test-timdex-bucket/dataset",
                         "--source=alma",
                         "--run-id=run-abc-123",
+                        f"--run-timestamp={run_timestamp}",
                     ]
                 },
                 {
@@ -103,6 +107,7 @@ def test_lambda_handler_with_next_step_transform_alma_files_present():
                         "--output-location=s3://test-timdex-bucket/dataset",
                         "--source=alma",
                         "--run-id=run-abc-123",
+                        f"--run-timestamp={run_timestamp}",
                     ]
                 },
                 {
@@ -112,8 +117,55 @@ def test_lambda_handler_with_next_step_transform_alma_files_present():
                         "--output-location=s3://test-timdex-bucket/dataset",
                         "--source=alma",
                         "--run-id=run-abc-123",
+                        f"--run-timestamp={run_timestamp}",
                     ]
                 },
+            ]
+        },
+    }
+
+
+def test_lambda_handler_with_next_step_transform_auto_generated_timestamp(s3_client):
+    s3_client.put_object(
+        Bucket="test-timdex-bucket",
+        Key="testsource/testsource-2022-01-02-daily-extracted-records-to-index.xml",
+        Body="I am a file",
+    )
+    event = {
+        "run-date": "2022-01-02T12:13:14Z",
+        "run-type": "daily",
+        "next-step": "transform",
+        "source": "testsource",
+        "run-id": "run-abc-123",
+        "verbose": "true",
+    }
+
+    with patch("lambdas.format_input.datetime") as mock_datetime:
+        mock_datetime.now.return_value.isoformat.return_value = (
+            "2025-06-18T12:34:56.789000"
+        )
+        mock_datetime.UTC = format_input.datetime.UTC
+
+        result = format_input.lambda_handler(event, {})
+
+    assert result == {
+        "run-date": "2022-01-02",
+        "run-type": "daily",
+        "source": "testsource",
+        "verbose": True,
+        "next-step": "load",
+        "transform": {
+            "files-to-transform": [
+                {
+                    "transform-command": [
+                        "--input-file=s3://test-timdex-bucket/testsource/"
+                        "testsource-2022-01-02-daily-extracted-records-to-index.xml",
+                        "--output-location=s3://test-timdex-bucket/dataset",
+                        "--source=testsource",
+                        "--run-id=run-abc-123",
+                        "--run-timestamp=2025-06-18T12:34:56.789000",
+                    ]
+                }
             ]
         },
     }

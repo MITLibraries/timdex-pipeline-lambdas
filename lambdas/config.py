@@ -19,7 +19,7 @@ VALID_RUN_TYPES = ("full", "daily")
 VALID_STEPS = ("extract", "transform", "load")
 
 
-def check_verbosity(verbose: bool | str) -> bool:
+def check_verbosity(verbose: bool | str) -> bool:  # noqa: FBT001
     """Determine whether verbose is True or False given a boolean or string value."""
     if isinstance(verbose, bool):
         return verbose
