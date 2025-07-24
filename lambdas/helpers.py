@@ -109,7 +109,7 @@ def list_s3_files_by_prefix(bucket: str, prefix: str) -> list[str]:
     return s3_files
 
 
-def dataset_records_exist_for_run(bucket: str, run_date: str, run_id: str) -> bool:
+def dataset_records_exist_for_run(run_date: str, run_id: str) -> bool:
     """Query TIMDEX dataset to confirm records to load and/or delete.
 
     A "run" is defined by a run-date + run-id, both provided as inputs to this lambda
@@ -117,6 +117,6 @@ def dataset_records_exist_for_run(bucket: str, run_date: str, run_id: str) -> bo
     action is "index" or "delete".  If zero records exist, or have action "skip" or
     "error", we do not need to perform any load commands.
     """
-    td = TIMDEXDataset(location=f"s3://{bucket}/dataset")
+    td = TIMDEXDataset(location=CONFIG.s3_etl_records_data_location)
     td.load(run_date=run_date, run_id=run_id, action=["index", "delete"])
     return td.row_count > 0

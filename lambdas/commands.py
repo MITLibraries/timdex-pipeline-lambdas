@@ -83,7 +83,7 @@ def generate_transform_commands(
     for extract_output_file in extract_output_files:
         transform_command = [
             f"--input-file=s3://{timdex_bucket}/{extract_output_file}",
-            f"--output-location=s3://{timdex_bucket}/dataset",
+            f"--output-location={CONFIG.s3_etl_records_data_location}",
             f"--source={source}",
             f"--run-id={run_id}",
             f"--run-timestamp={run_timestamp}",
@@ -97,11 +97,8 @@ def generate_load_commands(
     run_date: str,
     run_type: str,
     run_id: str,
-    timdex_bucket: str,
 ) -> dict:
     """Generate task run command for TIMDEX load."""
-    dataset_location = f"s3://{timdex_bucket}/dataset"
-
     update_command = [
         "bulk-update",
         "--run-date",
@@ -111,12 +108,14 @@ def generate_load_commands(
     ]
 
     if run_type == "daily":
-        update_command.extend(["--source", source, dataset_location])
+        update_command.extend(["--source", source, CONFIG.s3_etl_records_data_location])
         return {"bulk-update-command": update_command}
 
     if run_type == "full":
         new_index_name = helpers.generate_index_name(source)
-        update_command.extend(["--index", new_index_name, dataset_location])
+        update_command.extend(
+            ["--index", new_index_name, CONFIG.s3_etl_records_data_location]
+        )
         promote_index_command = ["promote", "--index", new_index_name]
         for alias, sources in CONFIG.INDEX_ALIASES.items():
             if source in sources:

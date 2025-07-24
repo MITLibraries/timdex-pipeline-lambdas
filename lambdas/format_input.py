@@ -92,11 +92,7 @@ def lambda_handler(event: dict, _context: dict) -> dict:
         return result
 
     if next_step == "load":
-        if not helpers.dataset_records_exist_for_run(
-            CONFIG.timdex_bucket,
-            run_date,
-            run_id,
-        ):
+        if not helpers.dataset_records_exist_for_run(run_date, run_id):
             result["failure"] = (
                 "No records were found in the TIMDEX dataset for run_date "
                 f"'{run_date}', run_id '{run_id}'."
@@ -107,7 +103,6 @@ def lambda_handler(event: dict, _context: dict) -> dict:
             run_date,
             run_type,
             run_id,
-            CONFIG.timdex_bucket,
         )
         return result
 
