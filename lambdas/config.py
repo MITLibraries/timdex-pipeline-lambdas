@@ -132,3 +132,11 @@ class Config:
                         f"with harvest step. Missing fields: {missing_harvest_fields}"
                     )
                     raise ValueError(message)
+
+    @property
+    def alma_export_bucket(self) -> str:
+        return os.environ["TIMDEX_ALMA_EXPORT_BUCKET_ID"]
+
+    @property
+    def timdex_bucket(self) -> str:
+        return os.environ["TIMDEX_S3_EXTRACT_BUCKET_ID"]
