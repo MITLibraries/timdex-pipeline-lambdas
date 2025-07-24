@@ -1,8 +1,11 @@
 import logging
 
-from lambdas import config, helpers
+from lambdas import helpers
+from lambdas.config import Config
 
 logger = logging.getLogger(__name__)
+
+CONFIG = Config()
 
 
 def generate_extract_command(
@@ -28,7 +31,7 @@ def generate_extract_command(
     if verbose:
         extract_command.append("--verbose")
 
-    if source in config.GIS_SOURCES:
+    if source in CONFIG.GIS_SOURCES:
         extract_command.append("harvest")
         if run_type == "daily":
             extract_command.append("--harvest-type=incremental")
@@ -115,7 +118,7 @@ def generate_load_commands(
         new_index_name = helpers.generate_index_name(source)
         update_command.extend(["--index", new_index_name, dataset_location])
         promote_index_command = ["promote", "--index", new_index_name]
-        for alias, sources in config.INDEX_ALIASES.items():
+        for alias, sources in CONFIG.INDEX_ALIASES.items():
             if source in sources:
                 promote_index_command.append("--alias")
                 promote_index_command.append(alias)

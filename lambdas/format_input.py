@@ -4,18 +4,21 @@ import os
 import uuid
 from datetime import UTC, datetime
 
-from lambdas import alma_prep, commands, config, errors, helpers
+from lambdas import alma_prep, commands, errors, helpers
+from lambdas.config import Config
 
 logger = logging.getLogger(__name__)
+
+CONFIG = Config()
 
 
 def lambda_handler(event: dict, _context: dict) -> dict:
     """Format data into the necessary input for TIMDEX pipeline processing."""
-    config.verify_env()
-    verbose = config.check_verbosity(event.get("verbose", False))
-    config.configure_logger(logging.getLogger(), verbose=verbose)
+    verbose = CONFIG.check_verbosity(event.get("verbose", False))
+    CONFIG.configure_logger(logging.getLogger(), verbose=verbose)
     logger.debug(json.dumps(event))
-    config.validate_input(event)
+
+    CONFIG.validate_input(event)
 
     run_date = helpers.format_run_date(event["run-date"])
     run_type = event["run-type"]
@@ -33,7 +36,7 @@ def lambda_handler(event: dict, _context: dict) -> dict:
     }
 
     if next_step == "extract":
-        if source in config.GIS_SOURCES:
+        if source in CONFIG.GIS_SOURCES:
             result["harvester-type"] = "geo"
         else:
             result["harvester-type"] = "oai"

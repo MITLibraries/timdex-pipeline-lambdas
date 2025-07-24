@@ -3,7 +3,10 @@
 import pytest
 from freezegun import freeze_time
 
-from lambdas import config, errors, helpers
+from lambdas import errors, helpers
+from lambdas.config import Config
+
+CONFIG = Config()
 
 
 def test_format_run_date_valid_run_date_string():
@@ -15,7 +18,7 @@ def test_format_run_date_invalid_run_date_string_raises_error():
         helpers.format_run_date("20220102")
     assert (
         "Input 'run-date' value must be one of the following date string formats: "
-        f"{config.VALID_DATE_FORMATS}. Value provided was '20220102'"
+        f"{CONFIG.VALID_DATE_FORMATS}. Value provided was '20220102'"
     ) in str(error.value)
 
 

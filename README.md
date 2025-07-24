@@ -178,9 +178,7 @@ WORKSPACE=### Set to `dev` for local development; this will be set to `stage` an
 
 ### Optional
 
-```shell
-ETL_VERSION=### Version number of the TIMDEX ETL infrastructure. This can be used to align application behavior with the requirements of other applications in the TIMDEX ETL pipeline.
-```
+None at this time.
 
 
 

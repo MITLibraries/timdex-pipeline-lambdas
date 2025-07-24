@@ -5,9 +5,12 @@ from datetime import UTC, datetime, timedelta
 import boto3
 from timdex_dataset_api.dataset import TIMDEXDataset  # type: ignore[import-untyped]
 
-from lambdas import config, errors
+from lambdas import errors
+from lambdas.config import Config
 
 logger = logging.getLogger(__name__)
+
+CONFIG = Config()
 
 
 def format_run_date(input_date: str) -> str:
@@ -18,14 +21,14 @@ def format_run_date(input_date: str) -> str:
     index names, YYYY-MM-DD.
     """
     input_date_object = None
-    for date_format in config.VALID_DATE_FORMATS:
+    for date_format in CONFIG.VALID_DATE_FORMATS:
         with contextlib.suppress(ValueError):
             input_date_object = datetime.strptime(input_date, date_format).astimezone(UTC)
     if input_date_object:
         return input_date_object.strftime("%Y-%m-%d")
     message = (
         "Input 'run-date' value must be one of the following date string formats: "
-        f"{config.VALID_DATE_FORMATS}. Value provided was '{input_date}'"
+        f"{CONFIG.VALID_DATE_FORMATS}. Value provided was '{input_date}'"
     )
     raise ValueError(message)
 
@@ -56,7 +59,7 @@ def generate_step_output_filename(
     """
     sequence_suffix = f"_{sequence}" if sequence else ""
     if step == "extract":
-        file_type = "jsonl" if source in config.GIS_SOURCES else "xml"
+        file_type = "jsonl" if source in CONFIG.GIS_SOURCES else "xml"
     elif load_type == "delete":
         file_type = "txt"
     else:
