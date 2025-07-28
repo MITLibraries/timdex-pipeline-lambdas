@@ -1,3 +1,5 @@
+# ruff: noqa: EM102, TRY003
+
 import logging
 import os
 from typing import Any, ClassVar
@@ -46,11 +48,19 @@ class Config:
 
     @property
     def alma_export_bucket(self) -> str:
-        return os.environ["TIMDEX_ALMA_EXPORT_BUCKET_ID"]
+        var = "TIMDEX_ALMA_EXPORT_BUCKET_ID"
+        value = os.getenv(var)
+        if not value:
+            raise OSError(f"Env var '{var}' must be defined")
+        return value
 
     @property
     def timdex_bucket(self) -> str:
-        return os.environ["TIMDEX_S3_EXTRACT_BUCKET_ID"]
+        var = "TIMDEX_S3_EXTRACT_BUCKET_ID"
+        value = os.getenv(var)
+        if not value:
+            raise OSError(f"Env var '{var}' must be defined")
+        return value
 
     @property
     def s3_timdex_dataset_data_location(self) -> str:
