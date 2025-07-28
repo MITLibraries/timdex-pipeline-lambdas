@@ -8,15 +8,15 @@ CONFIG = Config()
 
 
 def test_verbosity_returns_bool_if_bool():
-    assert CONFIG.check_verbosity(True) is True
+    assert CONFIG.get_verbose_flag(True) is True
 
 
 def test_verbosity_returns_true_if_true_string():
-    assert CONFIG.check_verbosity("True") is True
+    assert CONFIG.get_verbose_flag("True") is True
 
 
 def test_verbosity_returns_false_if_false_string():
-    assert CONFIG.check_verbosity("Anything-but-true") is False
+    assert CONFIG.get_verbose_flag("Anything-but-true") is False
 
 
 def test_verify_env_missing_env_raises_error(monkeypatch):

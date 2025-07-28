@@ -38,7 +38,7 @@ class Config:
             raise OSError(message)
 
     @staticmethod
-    def check_verbosity(verbose: bool | str) -> bool:  # noqa: FBT001
+    def get_verbose_flag(verbose: bool | str) -> bool:  # noqa: FBT001
         """Determine whether verbose is True or False given a boolean or string value."""
         if isinstance(verbose, bool):
             return verbose
