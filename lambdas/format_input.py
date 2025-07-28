@@ -4,7 +4,7 @@ import uuid
 from datetime import UTC, datetime
 
 from lambdas import alma_prep, commands, errors, helpers
-from lambdas.config import Config
+from lambdas.config import Config, configure_logger
 
 logger = logging.getLogger(__name__)
 
@@ -14,7 +14,7 @@ CONFIG = Config()
 def lambda_handler(event: dict, _context: dict) -> dict:
     """Format data into the necessary input for TIMDEX pipeline processing."""
     verbose = CONFIG.get_verbose_flag(event.get("verbose", False))
-    CONFIG.configure_logger(logging.getLogger(), verbose=verbose)
+    configure_logger(logging.getLogger(), verbose=verbose)
     logger.debug(json.dumps(event))
 
     helpers.validate_input(event)
