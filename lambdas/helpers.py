@@ -165,6 +165,6 @@ def dataset_records_exist_for_run(run_date: str, run_id: str) -> bool:
     action is "index" or "delete".  If zero records exist, or have action "skip" or
     "error", we do not need to perform any load commands.
     """
-    td = TIMDEXDataset(location=CONFIG.s3_etl_records_data_location)
+    td = TIMDEXDataset(location=CONFIG.s3_timdex_dataset_data_location)
     td.load(run_date=run_date, run_id=run_id, action=["index", "delete"])
     return td.row_count > 0

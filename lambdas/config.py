@@ -93,6 +93,6 @@ class Config:
         return os.environ["TIMDEX_S3_EXTRACT_BUCKET_ID"]
 
     @property
-    def s3_etl_records_data_location(self) -> str:
+    def s3_timdex_dataset_data_location(self) -> str:
         """Return full S3 URI (bucket + prefix) of ETL records data location."""
         return f"s3://{self.timdex_bucket}/dataset/data/records"
