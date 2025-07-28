@@ -17,7 +17,7 @@ def lambda_handler(event: dict, _context: dict) -> dict:
     CONFIG.configure_logger(logging.getLogger(), verbose=verbose)
     logger.debug(json.dumps(event))
 
-    CONFIG.validate_input(event)
+    helpers.validate_input(event)
 
     run_date = helpers.format_run_date(event["run-date"])
     run_type = event["run-type"]

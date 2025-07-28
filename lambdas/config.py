@@ -84,55 +84,6 @@ class Config:
             f"{logging.getLevelName(root_logger.getEffectiveLevel())}"
         )
 
-    @classmethod
-    def validate_input(cls, input_data: dict) -> None:
-        """Validate input to the lambda function.
-
-        Ensures that all requiered input fields are present and contain valid data.
-        """
-        # All required fields are present
-        if missing_fields := [
-            field for field in cls.REQUIRED_FIELDS if field not in input_data
-        ]:
-            message = (
-                "Input must include all required fields. "
-                f"Missing fields: {missing_fields}"
-            )
-            raise ValueError(message)
-
-        # Valid next step
-        next_step = input_data["next-step"]
-        if next_step not in cls.VALID_STEPS:
-            message = (
-                f"Input 'next-step' value must be one of: {cls.VALID_STEPS}. Value "
-                f"provided was '{next_step}'"
-            )
-            raise ValueError(message)
-
-        # Valid run type
-        run_type = input_data["run-type"]
-        if run_type not in cls.VALID_RUN_TYPES:
-            message = (
-                f"Input 'run-type' value must be one of: {cls.VALID_RUN_TYPES}. Value "
-                f"provided was '{run_type}'"
-            )
-            raise ValueError(message)
-
-        # If next step is extract step, required harvest fields are present
-        # ruff: noqa: SIM102
-        if input_data["next-step"] == "extract":
-            if input_data["source"] not in cls.GIS_SOURCES:
-                if missing_harvest_fields := [
-                    field
-                    for field in cls.REQUIRED_OAI_HARVEST_FIELDS
-                    if field not in input_data
-                ]:
-                    message = (
-                        "Input must include all required harvest fields when starting "
-                        f"with harvest step. Missing fields: {missing_harvest_fields}"
-                    )
-                    raise ValueError(message)
-
     @property
     def alma_export_bucket(self) -> str:
         return os.environ["TIMDEX_ALMA_EXPORT_BUCKET_ID"]
