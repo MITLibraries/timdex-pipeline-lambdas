@@ -1,5 +1,4 @@
 import logging
-import os
 import tarfile
 from collections.abc import Generator
 from typing import IO, TYPE_CHECKING
@@ -11,8 +10,11 @@ if TYPE_CHECKING:
     from mypy_boto3_s3.client import S3Client  # pragma: no cover
 
 from lambdas import helpers
+from lambdas.config import Config
 
 logger = logging.getLogger(__name__)
+
+CONFIG = Config()
 
 
 def extract_file_from_source_bucket_to_target_bucket(
@@ -100,7 +102,7 @@ def prepare_alma_export_files(run_date: str, run_type: str, timdex_bucket: str) 
     then performs the extract, unzip, rename and upload steps.
     """
     export_job_date = run_date.replace("-", "")
-    alma_bucket = os.environ["TIMDEX_ALMA_EXPORT_BUCKET_ID"]
+    alma_bucket = CONFIG.alma_export_bucket
     alma_export_files = helpers.list_s3_files_by_prefix(
         alma_bucket,
         f"exlibris/timdex/TIMDEX_ALMA_EXPORT_{run_type.upper()}_{export_job_date}",

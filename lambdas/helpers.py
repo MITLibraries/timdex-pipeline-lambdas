@@ -5,9 +5,60 @@ from datetime import UTC, datetime, timedelta
 import boto3
 from timdex_dataset_api.dataset import TIMDEXDataset  # type: ignore[import-untyped]
 
-from lambdas import config, errors
+from lambdas import errors
+from lambdas.config import Config
 
 logger = logging.getLogger(__name__)
+
+CONFIG = Config()
+
+
+def validate_input(input_data: dict) -> None:
+    """Validate input to the lambda function.
+
+    Ensures that all required input fields are present and contain valid data.
+    """
+    # All required fields are present
+    if missing_fields := [
+        field for field in CONFIG.REQUIRED_FIELDS if field not in input_data
+    ]:
+        message = (
+            f"Input must include all required fields. Missing fields: {missing_fields}"
+        )
+        raise ValueError(message)
+
+    # Valid next step
+    next_step = input_data["next-step"]
+    if next_step not in CONFIG.VALID_STEPS:
+        message = (
+            f"Input 'next-step' value must be one of: {CONFIG.VALID_STEPS}. Value "
+            f"provided was '{next_step}'"
+        )
+        raise ValueError(message)
+
+    # Valid run type
+    run_type = input_data["run-type"]
+    if run_type not in CONFIG.VALID_RUN_TYPES:
+        message = (
+            f"Input 'run-type' value must be one of: {CONFIG.VALID_RUN_TYPES}. Value "
+            f"provided was '{run_type}'"
+        )
+        raise ValueError(message)
+
+    # If next step is extract step, required harvest fields are present
+    # ruff: noqa: SIM102
+    if input_data["next-step"] == "extract":
+        if input_data["source"] not in CONFIG.GIS_SOURCES:
+            if missing_harvest_fields := [
+                field
+                for field in CONFIG.REQUIRED_OAI_HARVEST_FIELDS
+                if field not in input_data
+            ]:
+                message = (
+                    "Input must include all required harvest fields when starting "
+                    f"with harvest step. Missing fields: {missing_harvest_fields}"
+                )
+                raise ValueError(message)
 
 
 def format_run_date(input_date: str) -> str:
@@ -18,14 +69,14 @@ def format_run_date(input_date: str) -> str:
     index names, YYYY-MM-DD.
     """
     input_date_object = None
-    for date_format in config.VALID_DATE_FORMATS:
+    for date_format in CONFIG.VALID_DATE_FORMATS:
         with contextlib.suppress(ValueError):
             input_date_object = datetime.strptime(input_date, date_format).astimezone(UTC)
     if input_date_object:
         return input_date_object.strftime("%Y-%m-%d")
     message = (
         "Input 'run-date' value must be one of the following date string formats: "
-        f"{config.VALID_DATE_FORMATS}. Value provided was '{input_date}'"
+        f"{CONFIG.VALID_DATE_FORMATS}. Value provided was '{input_date}'"
     )
     raise ValueError(message)
 
@@ -56,7 +107,7 @@ def generate_step_output_filename(
     """
     sequence_suffix = f"_{sequence}" if sequence else ""
     if step == "extract":
-        file_type = "jsonl" if source in config.GIS_SOURCES else "xml"
+        file_type = "jsonl" if source in CONFIG.GIS_SOURCES else "xml"
     elif load_type == "delete":
         file_type = "txt"
     else:
@@ -106,7 +157,7 @@ def list_s3_files_by_prefix(bucket: str, prefix: str) -> list[str]:
     return s3_files
 
 
-def dataset_records_exist_for_run(bucket: str, run_date: str, run_id: str) -> bool:
+def dataset_records_exist_for_run(run_date: str, run_id: str) -> bool:
     """Query TIMDEX dataset to confirm records to load and/or delete.
 
     A "run" is defined by a run-date + run-id, both provided as inputs to this lambda
@@ -114,6 +165,6 @@ def dataset_records_exist_for_run(bucket: str, run_date: str, run_id: str) -> bo
     action is "index" or "delete".  If zero records exist, or have action "skip" or
     "error", we do not need to perform any load commands.
     """
-    td = TIMDEXDataset(location=f"s3://{bucket}/dataset")
+    td = TIMDEXDataset(location=CONFIG.s3_timdex_dataset_data_location)
     td.load(run_date=run_date, run_id=run_id, action=["index", "delete"])
     return td.row_count > 0
