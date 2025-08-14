@@ -63,9 +63,9 @@ class Config:
         return value
 
     @property
-    def s3_timdex_dataset_data_location(self) -> str:
-        """Return full S3 URI (bucket + prefix) of ETL records data location."""
-        return f"s3://{self.timdex_bucket}/dataset/data/records"
+    def s3_timdex_dataset_location(self) -> str:
+        """Return full S3 URI (bucket + prefix) of dataset root location."""
+        return f"s3://{self.timdex_bucket}/dataset"
 
 
 def configure_logger(
