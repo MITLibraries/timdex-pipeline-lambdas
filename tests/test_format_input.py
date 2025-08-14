@@ -280,7 +280,6 @@ def test_lambda_handler_with_next_step_load_no_files_present():
         "source": "testsource",
         "verbose": False,
         "failure": (
-            "No records were found in the TIMDEX dataset for "
-            "run_date '2022-01-02', run_id 'run-abc-123'."
+            "No records were found in the TIMDEX dataset for run_id 'run-abc-123'."
         ),
     }
