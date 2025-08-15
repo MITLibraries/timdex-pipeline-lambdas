@@ -1,3 +1,5 @@
+# ruff: noqa: S608
+
 import contextlib
 import logging
 from datetime import UTC, datetime, timedelta
@@ -157,14 +159,22 @@ def list_s3_files_by_prefix(bucket: str, prefix: str) -> list[str]:
     return s3_files
 
 
-def dataset_records_exist_for_run(run_date: str, run_id: str) -> bool:
-    """Query TIMDEX dataset to confirm records to load and/or delete.
+def dataset_records_exist_for_run(run_id: str) -> bool:
+    """Query TIMDEX dataset metadata to confirm records to load and/or delete.
 
     A "run" is defined by a run-date + run-id, both provided as inputs to this lambda
     invocation provided by the StepFunction.  We are interested only in records where
     action is "index" or "delete".  If zero records exist, or have action "skip" or
     "error", we do not need to perform any load commands.
     """
-    td = TIMDEXDataset(location=CONFIG.s3_timdex_dataset_data_location)
-    td.load(run_date=run_date, run_id=run_id, action=["index", "delete"])
-    return td.row_count > 0
+    td = TIMDEXDataset(location=CONFIG.s3_timdex_dataset_location)
+
+    etl_run_count = td.metadata.conn.query(
+        f"""
+        select count(*)
+        from metadata.records
+        where run_id = '{run_id}'
+        and action in ('index','delete')
+        """
+    ).fetchone()[0]
+    return etl_run_count > 0

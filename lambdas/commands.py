@@ -83,7 +83,7 @@ def generate_transform_commands(
     for extract_output_file in extract_output_files:
         transform_command = [
             f"--input-file=s3://{timdex_bucket}/{extract_output_file}",
-            f"--output-location={CONFIG.s3_timdex_dataset_data_location}",
+            f"--output-location={CONFIG.s3_timdex_dataset_location}",
             f"--source={source}",
             f"--run-id={run_id}",
             f"--run-timestamp={run_timestamp}",
@@ -112,7 +112,7 @@ def generate_load_commands(
             [
                 "--source",
                 source,
-                CONFIG.s3_timdex_dataset_data_location,
+                CONFIG.s3_timdex_dataset_location,
             ]
         )
         return {"bulk-update-command": update_command}
@@ -120,7 +120,7 @@ def generate_load_commands(
     if run_type == "full":
         new_index_name = helpers.generate_index_name(source)
         update_command.extend(
-            ["--index", new_index_name, CONFIG.s3_timdex_dataset_data_location]
+            ["--index", new_index_name, CONFIG.s3_timdex_dataset_location]
         )
         promote_index_command = ["promote", "--index", new_index_name]
         for alias, sources in CONFIG.INDEX_ALIASES.items():

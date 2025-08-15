@@ -99,7 +99,7 @@ def test_generate_transform_commands_required_input_fields(run_id, run_timestamp
                 "transform-command": [
                     "--input-file=s3://test-timdex-bucket/testsource/"
                     "testsource-2022-01-02-full-extracted-records-to-index.xml",
-                    "--output-location=s3://test-timdex-bucket/dataset/data/records",
+                    "--output-location=s3://test-timdex-bucket/dataset",
                     "--source=testsource",
                     f"--run-id={run_id}",
                     f"--run-timestamp={run_timestamp}",
@@ -133,7 +133,7 @@ def test_generate_transform_commands_all_input_fields(run_id, run_timestamp):
                 "transform-command": [
                     "--input-file=s3://test-timdex-bucket/testsource/"
                     "testsource-2022-01-02-daily-extracted-records-to-index_01.xml",
-                    "--output-location=s3://test-timdex-bucket/dataset/data/records",
+                    "--output-location=s3://test-timdex-bucket/dataset",
                     "--source=testsource",
                     f"--run-id={run_id}",
                     f"--run-timestamp={run_timestamp}",
@@ -143,7 +143,7 @@ def test_generate_transform_commands_all_input_fields(run_id, run_timestamp):
                 "transform-command": [
                     "--input-file=s3://test-timdex-bucket/testsource/"
                     "testsource-2022-01-02-daily-extracted-records-to-index_02.xml",
-                    "--output-location=s3://test-timdex-bucket/dataset/data/records",
+                    "--output-location=s3://test-timdex-bucket/dataset",
                     "--source=testsource",
                     f"--run-id={run_id}",
                     f"--run-timestamp={run_timestamp}",
@@ -153,7 +153,7 @@ def test_generate_transform_commands_all_input_fields(run_id, run_timestamp):
                 "transform-command": [
                     "--input-file=s3://test-timdex-bucket/testsource/"
                     "testsource-2022-01-02-daily-extracted-records-to-delete.xml",
-                    "--output-location=s3://test-timdex-bucket/dataset/data/records",
+                    "--output-location=s3://test-timdex-bucket/dataset",
                     "--source=testsource",
                     f"--run-id={run_id}",
                     f"--run-timestamp={run_timestamp}",
@@ -178,7 +178,7 @@ def test_generate_load_commands_daily(run_id):
             "run-abc-123",
             "--source",
             "testsource",
-            "s3://test-timdex-bucket/dataset/data/records",
+            "s3://test-timdex-bucket/dataset",
         ]
     }
 
@@ -200,7 +200,7 @@ def test_generate_load_commands_full_no_alias(run_id):
             "run-abc-123",
             "--index",
             "testsource-2022-01-02t12-13-14",
-            "s3://test-timdex-bucket/dataset/data/records",
+            "s3://test-timdex-bucket/dataset",
         ],
         "promote-index-command": ["promote", "--index", "testsource-2022-01-02t12-13-14"],
     }
@@ -223,7 +223,7 @@ def test_generate_load_commands_full_with_alias(run_id):
             "run-abc-123",
             "--index",
             "alma-2022-01-02t12-13-14",
-            "s3://test-timdex-bucket/dataset/data/records",
+            "s3://test-timdex-bucket/dataset",
         ],
         "promote-index-command": [
             "promote",

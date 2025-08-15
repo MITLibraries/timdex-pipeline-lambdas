@@ -61,7 +61,7 @@ def test_lambda_handler_with_next_step_transform_files_present(s3_client, run_ti
                     "transform-command": [
                         "--input-file=s3://test-timdex-bucket/testsource/"
                         "testsource-2022-01-02-daily-extracted-records-to-index.xml",
-                        "--output-location=s3://test-timdex-bucket/dataset/data/records",
+                        "--output-location=s3://test-timdex-bucket/dataset",
                         "--source=testsource",
                         "--run-id=run-abc-123",
                         f"--run-timestamp={run_timestamp}",
@@ -94,7 +94,7 @@ def test_lambda_handler_with_next_step_transform_alma_files_present(run_timestam
                     "transform-command": [
                         "--input-file=s3://test-timdex-bucket/alma/"
                         "alma-2022-09-12-daily-extracted-records-to-delete.xml",
-                        "--output-location=s3://test-timdex-bucket/dataset/data/records",
+                        "--output-location=s3://test-timdex-bucket/dataset",
                         "--source=alma",
                         "--run-id=run-abc-123",
                         f"--run-timestamp={run_timestamp}",
@@ -104,7 +104,7 @@ def test_lambda_handler_with_next_step_transform_alma_files_present(run_timestam
                     "transform-command": [
                         "--input-file=s3://test-timdex-bucket/alma/"
                         "alma-2022-09-12-daily-extracted-records-to-index_01.xml",
-                        "--output-location=s3://test-timdex-bucket/dataset/data/records",
+                        "--output-location=s3://test-timdex-bucket/dataset",
                         "--source=alma",
                         "--run-id=run-abc-123",
                         f"--run-timestamp={run_timestamp}",
@@ -114,7 +114,7 @@ def test_lambda_handler_with_next_step_transform_alma_files_present(run_timestam
                     "transform-command": [
                         "--input-file=s3://test-timdex-bucket/alma/"
                         "alma-2022-09-12-daily-extracted-records-to-index_02.xml",
-                        "--output-location=s3://test-timdex-bucket/dataset/data/records",
+                        "--output-location=s3://test-timdex-bucket/dataset",
                         "--source=alma",
                         "--run-id=run-abc-123",
                         f"--run-timestamp={run_timestamp}",
@@ -160,7 +160,7 @@ def test_lambda_handler_with_next_step_transform_auto_generated_timestamp(s3_cli
                     "transform-command": [
                         "--input-file=s3://test-timdex-bucket/testsource/"
                         "testsource-2022-01-02-daily-extracted-records-to-index.xml",
-                        "--output-location=s3://test-timdex-bucket/dataset/data/records",
+                        "--output-location=s3://test-timdex-bucket/dataset",
                         "--source=testsource",
                         "--run-id=run-abc-123",
                         "--run-timestamp=2025-06-18T12:34:56.789000",
@@ -253,7 +253,7 @@ def test_lambda_handler_with_next_step_load_files_present(s3_client):
                 "run-abc-123",
                 "--source",
                 "testsource",
-                "s3://test-timdex-bucket/dataset/data/records",
+                "s3://test-timdex-bucket/dataset",
             ]
         },
     }
@@ -280,7 +280,6 @@ def test_lambda_handler_with_next_step_load_no_files_present():
         "source": "testsource",
         "verbose": False,
         "failure": (
-            "No records were found in the TIMDEX dataset for "
-            "run_date '2022-01-02', run_id 'run-abc-123'."
+            "No records were found in the TIMDEX dataset for run_id 'run-abc-123'."
         ),
     }
