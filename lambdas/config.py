@@ -16,7 +16,7 @@ class Config:
     GIS_SOURCES = ("gismit", "gisogm")
     INDEX_ALIASES: ClassVar = {
         "rdi": ["jpal", "whoas", "zenodo"],
-        "timdex": ["alma", "aspace", "dspace"],
+        "timdex": ["alma", "aspace", "dspace", "libguides", "researchdatabases"],
         "geo": GIS_SOURCES,
     }
     REQUIRED_FIELDS = ("next-step", "run-date", "run-type", "source")

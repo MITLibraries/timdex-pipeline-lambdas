@@ -52,7 +52,7 @@ def generate_extract_command(
             f"--output-file=s3://{timdex_bucket}/{extract_output_file}"
         )
         extract_command.append("harvest")
-        if source in ["aspace", "dspace"]:
+        if source in ["aspace", "dspace", "libguides", "researchdatabases"]:
             extract_command.append("--method=get")
         extract_command.append(f"--metadata-format={input_data['oai-metadata-format']}")
         if run_type == "daily":
