@@ -15,9 +15,10 @@ class Config:
 
     GIS_SOURCES = ("gismit", "gisogm")
     INDEX_ALIASES: ClassVar = {
+        "geo": GIS_SOURCES,
         "rdi": ["jpal", "whoas", "zenodo"],
         "timdex": ["alma", "aspace", "dspace", "libguides", "researchdatabases"],
-        "geo": GIS_SOURCES,
+        "use": ["aspace", "dspace", *list(GIS_SOURCES), "libguides", "researchdatabases"],
     }
     REQUIRED_FIELDS = ("next-step", "run-date", "run-type", "source")
     REQUIRED_OAI_HARVEST_FIELDS = ("oai-pmh-host", "oai-metadata-format")
