@@ -72,22 +72,6 @@ The output will vary slightly depending on the provided `source`, as these somet
 }
 ```
 
-## Ping Handler
-
-Useful for testing and little else.
-
-### Example Ping Event
-
-```json
-{}
-```
-
-### Example Ping Result
-
-```json
-pong
-```
-
 ## Development
 
 * To preview a list of available Makefile commands: `make help`
@@ -102,69 +86,46 @@ The `update-format-lambda` is required anytime an image contains a change to the
 
 GitHub Actions is configured to update the Lambda function with every push to the `main` branch.
 
-### Running Locally with Docker
+### Running Locally with [AWS SAM](https://aws.amazon.com/serverless/sam/)
 
-- Build the container
+Ensure that AWS SAM CLI is installed: https://docs.aws.amazon.com/serverless-application-model/latest/developerguide/install-sam-cli.html.
 
-  ```bash
-  make dist-dev
-  ```
+All following actions and commands should be performed from the root of the project (i.e. same directory as the `Dockerfile`).
 
-- Run the default handler for the container
+1- Create an environment variables override file:
 
- ```bash
-docker run -e TIMDEX_ALMA_EXPORT_BUCKET_ID=alma-bucket-name \
--e TIMDEX_S3_EXTRACT_BUCKET_ID=timdex-bucket-name \
--e WORKSPACE=dev \
--p 9000:8080 timdex-pipeline-lambdas-dev:latest
- ```
-
-- POST to the container
-  Note: running this with next-step transform or load involves an actual S3 connection and is thus tricky to test locally. Better to push the image to Dev1 and test there.
-
-```bash
-curl -XPOST "http://localhost:9000/2015-03-31/functions/function/invocations" -d '{
-  "next-step": "extract",
-  "run-date": "2022-03-10T16:30:23Z",
-  "run-type": "daily",
-  "source": "YOURSOURCE",
-  "verbose": "true",
-  "oai-pmh-host": "https://YOUR-OAI-SOURCE/oai",
-  "oai-metadata-format": "oai_dc",
-  "oai-set-spec": "YOUR-SET-SPEC"
-}'
+```shell
+cp tests/sam/env.json.template tests/sam/env.json
 ```
-  
-- Observe output
-- 
+
+Then update as needed.  Defaults are okay for `extract` commands, but real bucket names will be needed for `transform` and `load` commands.
+
+**NOTE:** AWS credentials are automatically passed from the terminal context where `sam invoke ...` is called; they do not need to be explicitly set as env vars in the `env.json` file that provides container overrides.
+
+2- Build the SAM docker image:
+
+```shell
+make sam-build
+```
+
+3- Run a test invocation:
+```shell
+make sam-example-libguides-extract
+```
+
+Note the final lines of the output in the terminal is what the lambda would have returned:
+
 ```json
-{
-  "run-date": "2022-03-10",
-  "run-type": "daily",
-  "source": "YOURSOURCE",
-  "verbose": true,
-  "next-step": "transform",
-  "extract": {
-    "extract-command": [
-      "--host=https://YOUR-OAI-SOURCE/oai",
-      "--output-file=s3://timdex-bucket-name/YOURSOURCE/YOURSOURCE-2022-03-09-daily-extracted-records-to-index.xml",
-      "--verbose",
-      "harvest",
-      "--metadata-format=oai_dc",
-      "--set-spec=YOUR-SET-SPEC",
-      "--from-date=2022-03-09"
-    ]
-  }
-}
+{"run-date": "2025-10-14", "run-type": "full", "source": "libguides", "verbose": true, "harvester-type": "oai", "next-step": "transform", "extract": {"extract-command": ["--verbose", "--host=https://libguides.mit.edu/oai.php", "--output-file=s3://timdex-bucket/libguides/libguides-2025-10-14-full-extracted-records-to-index.xml", "harvest", "--metadata-format=oai_dc", "--exclude-deleted", "--set-spec=guides"]}}
 ```
 
-### Running a Specific Handler Locally with Docker
-You can call any handler you copy into the container (see Dockerfile) by name as part of the `docker run` command.
+4- Run your own, custom invocation by preparing a JSON payload.  This can be achieved either by passing a JSON file like the `Makefile` example `sam-example-libguides-extract` does, or by providing a `stdin` JSON string like this:
 
-```bash
-docker run -p 9000:8080 timdex-pipeline-lambdas-dev:latest lambdas.ping.lambda_handler
-curl -XPOST "http://localhost:9000/2015-03-31/functions/function/invocations" -d '{}'
+```shell
+echo '{"next-step": "extract", "run-date": "2025-10-14", "run-type": "full", "source": "libguides", "verbose": "true", "oai-pmh-host": "https://libguides.mit.edu/oai.php", "oai-metadata-format": "oai_dc", "oai-set-spec": "guides", "run-id": "abc123"}' | sam local invoke -e -
 ```
+
+Note that `--env-vars tests/sam/env.json` was not passed or needed.  The [template YAML file](tests/sam/template.yaml) provides default values for env vars, and because they weren't actually used by the `extract` command generation work, the defaults were fine.  Overrides to sensitive env vars are generally only needed when they will actually be used.
 
 ## Environment Variables
 

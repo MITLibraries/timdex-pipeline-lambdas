@@ -1,0 +1,11 @@
+{
+  "next-step": "extract",
+  "run-date": "2025-10-14",
+  "run-type": "full",
+  "source": "libguides",
+  "verbose": "true",
+  "oai-pmh-host": "https://libguides.mit.edu/oai.php",
+  "oai-metadata-format": "oai_dc",
+  "oai-set-spec": "guides",
+  "run-id": "abc123"
+}

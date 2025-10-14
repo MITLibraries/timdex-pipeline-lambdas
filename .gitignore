@@ -135,3 +135,7 @@ dmypy.json
 # VSCode
 .vscode/
 .idea/
+
+# SAM
+.aws-sam/
+tests/sam/env.json
