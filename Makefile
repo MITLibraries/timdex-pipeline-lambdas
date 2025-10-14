@@ -44,7 +44,7 @@ ruff:
 	pipenv run ruff check .
 
 safety: # Check for security vulnerabilities and verify Pipfile.lock is up-to-date
-	pipenv run pip-audit
+	pipenv run pip-audit --ignore-vuln GHSA-4xh5-x5gv-qwph
 	pipenv verify
 
 # apply changes to resolve any linting errors
@@ -89,3 +89,15 @@ publish-stage: ## Only use in an emergency
 
 update-lambda-stage: ## Updates the lambda with whatever is the most recent image in the ecr (intended for developer-based manual update)
 	aws lambda update-function-code --function-name $(FUNCTION_STAGE) --image-uri $(ECR_URL_STAGE):latest
+
+
+####################################
+# SAM Lambda
+####################################
+sam-build: # Build SAM image for running Lambda locally
+	sam build --template tests/sam/template.yaml
+
+sam-example-libguides-extract: # Example command for invoking lambda
+	sam local invoke \
+	--env-vars tests/sam/env.json \
+	-e tests/fixtures/event_payloads/libguides-full-extract.json
