@@ -47,8 +47,11 @@ def generate_extract_command(
         extract_command.append(source.removeprefix("gis"))
 
     elif source == "mitlibwebsite":
-        # required
+        # defaults
         extract_command.append("harvest")
+        extract_command.append("--include-fulltext")
+
+        # required
         extract_command.append(
             f"--config-yaml-file={input_data['btrix-config-yaml-file']}"
         )
