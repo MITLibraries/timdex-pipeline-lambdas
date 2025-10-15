@@ -90,6 +90,68 @@ def test_validate_input_with_all_required_harvest_fields_returns_none():
     assert helpers.validate_input(event) is None
 
 
+def test_validate_input_mitlibwebsite_missing_harvest_fields_raises_error():
+    event = {
+        "next-step": "extract",
+        "run-date": "2022-01-02",
+        "run-type": "full",
+        "source": "mitlibwebsite",
+        "btrix-config-yaml-file": "s3://bucket/config.yaml",
+        "btrix-sitemaps": ["https://example.com/sitemap.xml"],
+    }
+    with pytest.raises(ValueError) as error:
+        helpers.validate_input(event)
+    assert "Input must include all required harvest fields when starting with " in str(
+        error.value
+    )
+    assert "'btrix-sitemap-urls-output-file'" in str(error.value)
+
+
+def test_validate_input_mitlibwebsite_daily_missing_previous_urls_raises_error():
+    event = {
+        "next-step": "extract",
+        "run-date": "2022-01-02",
+        "run-type": "daily",
+        "source": "mitlibwebsite",
+        "btrix-config-yaml-file": "s3://bucket/config.yaml",
+        "btrix-sitemaps": ["https://example.com/sitemap.xml"],
+        "btrix-sitemap-urls-output-file": "s3://bucket/output.txt",
+    }
+    with pytest.raises(ValueError) as error:
+        helpers.validate_input(event)
+    assert (
+        "Field 'btrix-previous-sitemap-urls-file' required when 'run-type=daily'"
+        in str(error.value)
+    )
+
+
+def test_validate_input_mitlibwebsite_full_without_previous_urls_returns_none():
+    event = {
+        "next-step": "extract",
+        "run-date": "2022-01-02",
+        "run-type": "full",
+        "source": "mitlibwebsite",
+        "btrix-config-yaml-file": "s3://bucket/config.yaml",
+        "btrix-sitemaps": ["https://example.com/sitemap.xml"],
+        "btrix-sitemap-urls-output-file": "s3://bucket/output.txt",
+    }
+    assert helpers.validate_input(event) is None
+
+
+def test_validate_input_mitlibwebsite_daily_with_all_required_fields_returns_none():
+    event = {
+        "next-step": "extract",
+        "run-date": "2022-01-02",
+        "run-type": "daily",
+        "source": "mitlibwebsite",
+        "btrix-config-yaml-file": "s3://bucket/config.yaml",
+        "btrix-sitemaps": ["https://example.com/sitemap.xml"],
+        "btrix-sitemap-urls-output-file": "s3://bucket/output.txt",
+        "btrix-previous-sitemap-urls-file": "s3://bucket/previous.txt",
+    }
+    assert helpers.validate_input(event) is None
+
+
 def test_format_run_date_valid_run_date_string():
     assert helpers.format_run_date("2022-01-02T12:13:14Z") == "2022-01-02"
 

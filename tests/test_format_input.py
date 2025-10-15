@@ -34,6 +34,79 @@ def test_lambda_handler_with_next_step_extract():
     }
 
 
+def test_lambda_handler_with_next_step_extract_mitlibwebsite_full():
+    event = {
+        "run-date": "2022-01-02T12:13:14Z",
+        "run-type": "full",
+        "next-step": "extract",
+        "source": "mitlibwebsite",
+        "run-id": "run-abc-123",
+        "btrix-config-yaml-file": "s3://bucket/config.yaml",
+        "btrix-sitemaps": [
+            "https://libraries.mit.edu/sitemap.xml",
+            "https://libraries.mit.edu/news/sitemap.xml",
+        ],
+        "btrix-sitemap-urls-output-file": "s3://bucket/output.txt",
+    }
+    output = format_input.lambda_handler(event, {})
+    assert output == {
+        "run-date": "2022-01-02",
+        "run-type": "full",
+        "source": "mitlibwebsite",
+        "verbose": False,
+        "harvester-type": "browsertrix",
+        "next-step": "transform",
+        "extract": {
+            "extract-command": [
+                "harvest",
+                "--include-fulltext",
+                "--config-yaml-file=s3://bucket/config.yaml",
+                "--metadata-output-file=s3://test-timdex-bucket/mitlibwebsite/"
+                "mitlibwebsite-2022-01-02-full-extracted-records-to-index.jsonl",
+                "--sitemap=https://libraries.mit.edu/sitemap.xml",
+                "--sitemap=https://libraries.mit.edu/news/sitemap.xml",
+                "--sitemap-urls-output-file=s3://bucket/output.txt",
+            ]
+        },
+    }
+
+
+def test_lambda_handler_with_next_step_extract_mitlibwebsite_daily():
+    event = {
+        "run-date": "2022-01-02T12:13:14Z",
+        "run-type": "daily",
+        "next-step": "extract",
+        "source": "mitlibwebsite",
+        "run-id": "run-abc-123",
+        "btrix-config-yaml-file": "s3://bucket/config.yaml",
+        "btrix-sitemaps": ["https://libraries.mit.edu/sitemap.xml"],
+        "btrix-sitemap-urls-output-file": "s3://bucket/output.txt",
+        "btrix-previous-sitemap-urls-file": "s3://bucket/previous.txt",
+    }
+    output = format_input.lambda_handler(event, {})
+    assert output == {
+        "run-date": "2022-01-02",
+        "run-type": "daily",
+        "source": "mitlibwebsite",
+        "verbose": False,
+        "harvester-type": "browsertrix",
+        "next-step": "transform",
+        "extract": {
+            "extract-command": [
+                "harvest",
+                "--include-fulltext",
+                "--config-yaml-file=s3://bucket/config.yaml",
+                "--metadata-output-file=s3://test-timdex-bucket/mitlibwebsite/"
+                "mitlibwebsite-2022-01-02-daily-extracted-records-to-index.jsonl",
+                "--sitemap=https://libraries.mit.edu/sitemap.xml",
+                "--sitemap-from-date=2022-01-01",
+                "--sitemap-urls-output-file=s3://bucket/output.txt",
+                "--previous-sitemap-urls-file=s3://bucket/previous.txt",
+            ]
+        },
+    }
+
+
 def test_lambda_handler_with_next_step_transform_files_present(s3_client, run_timestamp):
     s3_client.put_object(
         Bucket="test-timdex-bucket",

@@ -1,0 +1,16 @@
+{
+  "next-step": "extract",
+  "run-date": "2025-10-14",
+  "run-type": "daily",
+  "source": "mitlibwebsite",
+  "verbose": "true",
+  "run-id": "abc123",
+  "btrix-config-yaml-file": "s3://timdex-bucket/mitlibwebsite/config/mitlibwebsite.yaml",
+  "btrix-sitemaps": [
+    "https://libraries.mit.edu/sitemap.xml",
+    "https://libraries.mit.edu/news/sitemap.xml"
+  ],
+  "btrix-sitemap-from-date": "2025-10-13",
+  "btrix-sitemap-urls-output-file": "s3://timdex-bucket/mitlibwebsite/last-sitemaps-urls.txt",
+  "btrix-previous-sitemap-urls-file": "s3://timdex-bucket/mitlibwebsite/last-sitemaps-urls.txt"
+}

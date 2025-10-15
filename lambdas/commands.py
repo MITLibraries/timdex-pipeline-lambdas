@@ -46,6 +46,33 @@ def generate_extract_command(
         )
         extract_command.append(source.removeprefix("gis"))
 
+    elif source == "mitlibwebsite":
+        # defaults
+        extract_command.append("harvest")
+        extract_command.append("--include-fulltext")
+
+        # required
+        extract_command.append(
+            f"--config-yaml-file={input_data['btrix-config-yaml-file']}"
+        )
+        extract_command.append(
+            f"--metadata-output-file=s3://{timdex_bucket}/{extract_output_file}"
+        )
+
+        # optional
+        if sitemaps := input_data.get("btrix-sitemaps"):
+            extract_command.extend([f"--sitemap={sitemap}" for sitemap in sitemaps])
+        if run_type == "daily":
+            extract_command.append(
+                f"--sitemap-from-date={helpers.generate_harvest_from_date(run_date)}"
+            )
+        if sitemap_urls_out := input_data.get("btrix-sitemap-urls-output-file"):
+            extract_command.append(f"--sitemap-urls-output-file={sitemap_urls_out}")
+        if sitemap_urls_previous := input_data.get("btrix-previous-sitemap-urls-file"):
+            extract_command.append(
+                f"--previous-sitemap-urls-file={sitemap_urls_previous}"
+            )
+
     else:
         extract_command.append(f"--host={input_data['oai-pmh-host']}")
         extract_command.append(

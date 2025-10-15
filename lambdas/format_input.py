@@ -36,6 +36,8 @@ def lambda_handler(event: dict, _context: dict) -> dict:
     if next_step == "extract":
         if source in CONFIG.GIS_SOURCES:
             result["harvester-type"] = "geo"
+        elif source == "mitlibwebsite":
+            result["harvester-type"] = "browsertrix"
         else:
             result["harvester-type"] = "oai"
         result["next-step"] = "transform"
