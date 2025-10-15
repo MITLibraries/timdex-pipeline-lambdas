@@ -17,8 +17,22 @@ class Config:
     INDEX_ALIASES: ClassVar = {
         "geo": GIS_SOURCES,
         "rdi": ["jpal", "whoas", "zenodo"],
-        "timdex": ["alma", "aspace", "dspace", "libguides", "researchdatabases"],
-        "use": ["aspace", "dspace", *list(GIS_SOURCES), "libguides", "researchdatabases"],
+        "timdex": [
+            "alma",
+            "aspace",
+            "dspace",
+            "libguides",
+            "mitlibwebsite",
+            "researchdatabases",
+        ],
+        "use": [
+            "aspace",
+            "dspace",
+            *list(GIS_SOURCES),
+            "libguides",
+            "mitlibwebsite",
+            "researchdatabases",
+        ],
     }
     REQUIRED_FIELDS = ("next-step", "run-date", "run-type", "source")
     REQUIRED_OAI_HARVEST_FIELDS = ("oai-pmh-host", "oai-metadata-format")
