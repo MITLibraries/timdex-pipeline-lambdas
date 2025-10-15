@@ -22,6 +22,11 @@ class Config:
     }
     REQUIRED_FIELDS = ("next-step", "run-date", "run-type", "source")
     REQUIRED_OAI_HARVEST_FIELDS = ("oai-pmh-host", "oai-metadata-format")
+    REQUIRED_BTRIX_HARVEST_FIELDS = (
+        "btrix-config-yaml-file",
+        "btrix-sitemaps",
+        "btrix-sitemap-urls-output-file",
+    )
     VALID_DATE_FORMATS = ("%Y-%m-%d", "%Y-%m-%dT%H:%M:%SZ")
     VALID_RUN_TYPES = ("full", "daily")
     VALID_STEPS = ("extract", "transform", "load")

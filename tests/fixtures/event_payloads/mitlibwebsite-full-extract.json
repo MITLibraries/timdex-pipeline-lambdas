@@ -1,0 +1,30 @@
+{
+  "next-step": "extract",
+  "run-date": "2025-10-14",
+  "run-type": "full",
+  "source": "mitlibwebsite",
+  "verbose": "true",
+  "run-id": "abc123",
+  "btrix-config-yaml-file": "s3://timdex-bucket/mitlibwebsite/config/mitlibwebsite.yaml",
+  "btrix-sitemaps": [
+    "https://libraries.mit.edu/sitemap.xml",
+    "https://libraries.mit.edu/news/sitemap.xml",
+    "https://libraries.mit.edu/scholarly/sitemap.xml",
+    "https://libraries.mit.edu/150books/sitemap.xml",
+    "https://libraries.mit.edu/giving/sitemap.xml",
+    "https://libraries.mit.edu/music-oral-history/sitemap.xml",
+    "https://libraries.mit.edu/docs/sitemap.xml",
+    "https://libraries.mit.edu/data-management/sitemap.xml",
+    "https://libraries.mit.edu/akdc/sitemap.xml",
+    "https://libraries.mit.edu/mit-reads/sitemap.xml",
+    "https://libraries.mit.edu/pomeroy/sitemap.xml",
+    "https://libraries.mit.edu/creos/sitemap.xml",
+    "https://libraries.mit.edu/distinctive-collections/sitemap.xml",
+    "https://libraries.mit.edu/about/sitemap.xml",
+    "https://libraries.mit.edu/opendata/sitemap.xml",
+    "https://libraries.mit.edu/records-management/sitemap.xml"
+  ],
+  "btrix-sitemap-from-date": "2025-10-13",
+  "btrix-sitemap-urls-output-file": "s3://timdex-bucket/mitlibwebsite/last-sitemaps-urls.txt",
+  "btrix-previous-sitemap-urls-file": "s3://timdex-bucket/mitlibwebsite/last-sitemaps-urls.txt"
+}

@@ -48,19 +48,35 @@ def validate_input(input_data: dict) -> None:
         raise ValueError(message)
 
     # If next step is extract step, required harvest fields are present
-    # ruff: noqa: SIM102
     if input_data["next-step"] == "extract":
-        if input_data["source"] not in CONFIG.GIS_SOURCES:
-            if missing_harvest_fields := [
-                field
-                for field in CONFIG.REQUIRED_OAI_HARVEST_FIELDS
-                if field not in input_data
-            ]:
+        missing_harvest_fields = None
+        if input_data["source"] in CONFIG.GIS_SOURCES:
+            pass  # Currently no specific GeoHarvester requirements
+        elif input_data["source"] == "mitlibwebsite":
+            missing_harvest_fields = set(CONFIG.REQUIRED_BTRIX_HARVEST_FIELDS).difference(
+                set(input_data.keys())
+            )
+            # require previous sitemaps URLs argument for daily runs
+            if (
+                input_data["run-type"] == "daily"
+                and "btrix-previous-sitemap-urls-file" not in input_data
+            ):
                 message = (
-                    "Input must include all required harvest fields when starting "
-                    f"with harvest step. Missing fields: {missing_harvest_fields}"
+                    "Field 'btrix-previous-sitemap-urls-file' "
+                    "required when 'run-type=daily'"
                 )
                 raise ValueError(message)
+        else:
+            missing_harvest_fields = set(CONFIG.REQUIRED_OAI_HARVEST_FIELDS).difference(
+                set(input_data.keys())
+            )
+
+        if missing_harvest_fields:
+            message = (
+                "Input must include all required harvest fields when starting "
+                f"with harvest step. Missing fields: {list(missing_harvest_fields)}"
+            )
+            raise ValueError(message)
 
 
 def format_run_date(input_date: str) -> str:
@@ -109,7 +125,11 @@ def generate_step_output_filename(
     """
     sequence_suffix = f"_{sequence}" if sequence else ""
     if step == "extract":
-        file_type = "jsonl" if source in CONFIG.GIS_SOURCES else "xml"
+        file_type = (
+            "jsonl"
+            if (source in CONFIG.GIS_SOURCES or source == "mitlibwebsite")
+            else "xml"
+        )
     elif load_type == "delete":
         file_type = "txt"
     else:

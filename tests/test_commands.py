@@ -77,6 +77,61 @@ def test_generate_extract_command_geoharvester():
     }
 
 
+def test_generate_extract_command_mitlibwebsite_full():
+    input_data = {
+        "run-date": "2022-01-02T12:13:14Z",
+        "run-type": "full",
+        "next-step": "extract",
+        "source": "mitlibwebsite",
+        "btrix-config-yaml-file": "s3://bucket/config.yaml",
+        "btrix-sitemaps": [
+            "https://libraries.mit.edu/sitemap.xml",
+            "https://libraries.mit.edu/news/sitemap.xml",
+        ],
+        "btrix-sitemap-urls-output-file": "s3://bucket/output.txt",
+    }
+    assert commands.generate_extract_command(
+        input_data, "2022-01-02", "test-timdex-bucket", False
+    ) == {
+        "extract-command": [
+            "harvest",
+            "--config-yaml-file=s3://bucket/config.yaml",
+            "--metadata-output-file=s3://test-timdex-bucket/mitlibwebsite/"
+            "mitlibwebsite-2022-01-02-full-extracted-records-to-index.jsonl",
+            "--sitemap=https://libraries.mit.edu/sitemap.xml",
+            "--sitemap=https://libraries.mit.edu/news/sitemap.xml",
+            "--sitemap-urls-output-file=s3://bucket/output.txt",
+        ]
+    }
+
+
+def test_generate_extract_command_mitlibwebsite_daily():
+    input_data = {
+        "run-date": "2022-01-02T12:13:14Z",
+        "run-type": "daily",
+        "next-step": "extract",
+        "source": "mitlibwebsite",
+        "btrix-config-yaml-file": "s3://bucket/config.yaml",
+        "btrix-sitemaps": ["https://libraries.mit.edu/sitemap.xml"],
+        "btrix-sitemap-urls-output-file": "s3://bucket/output.txt",
+        "btrix-previous-sitemap-urls-file": "s3://bucket/previous.txt",
+    }
+    assert commands.generate_extract_command(
+        input_data, "2022-01-02", "test-timdex-bucket", False
+    ) == {
+        "extract-command": [
+            "harvest",
+            "--config-yaml-file=s3://bucket/config.yaml",
+            "--metadata-output-file=s3://test-timdex-bucket/mitlibwebsite/"
+            "mitlibwebsite-2022-01-02-daily-extracted-records-to-index.jsonl",
+            "--sitemap=https://libraries.mit.edu/sitemap.xml",
+            "--sitemap-from-date=2022-01-01",
+            "--sitemap-urls-output-file=s3://bucket/output.txt",
+            "--previous-sitemap-urls-file=s3://bucket/previous.txt",
+        ]
+    }
+
+
 def test_generate_transform_commands_required_input_fields(run_id, run_timestamp):
     input_data = {
         "next-step": "transform",
