@@ -41,6 +41,9 @@ class Config:
         "btrix-sitemaps",
         "btrix-sitemap-urls-output-file",
     )
+    SOURCE_EXCLUSION_LISTS: ClassVar = {
+        "libguides": "/libguides/config/libguides-exclusions.csv"
+    }
     VALID_DATE_FORMATS = ("%Y-%m-%d", "%Y-%m-%dT%H:%M:%SZ")
     VALID_RUN_TYPES = ("full", "daily")
     VALID_STEPS = ("extract", "transform", "load")
@@ -90,9 +93,10 @@ class Config:
     @property
     def source_exclusion_lists(self) -> dict[str, str]:
         """Return dict of sources with S3 paths to their corresponding exclusion list."""
-        return {
-            "libguides": f"s3://{self.timdex_bucket}/libguides/config/libguides-exclusions.csv"
-        }
+        exclusion_lists = {}
+        for source, path in self.SOURCE_EXCLUSION_LISTS.items():
+            exclusion_lists[source] = f"s3://{self.timdex_bucket}{path}"
+        return exclusion_lists
 
 
 def configure_logger(
