@@ -115,6 +115,10 @@ def generate_transform_commands(
             f"--run-id={run_id}",
             f"--run-timestamp={run_timestamp}",
         ]
+        if source in CONFIG.source_exclusion_lists:
+            transform_command.append(
+                f"--exclusion-list-path={CONFIG.source_exclusion_lists[source]}"
+            )
         files_to_transform.append({"transform-command": transform_command})
     return {"files-to-transform": files_to_transform}
 

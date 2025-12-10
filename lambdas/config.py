@@ -87,6 +87,13 @@ class Config:
         """Return full S3 URI (bucket + prefix) of dataset root location."""
         return f"s3://{self.timdex_bucket}/dataset"
 
+    @property
+    def source_exclusion_lists(self) -> dict[str, str]:
+        """Return dict of sources with S3 paths to their corresponding exclusion list."""
+        return {
+            "libguides": f"s3://{self.timdex_bucket}/libguides/config/libguides-exclusions.csv"
+        }
+
 
 def configure_logger(
     root_logger: logging.Logger,
