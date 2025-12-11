@@ -246,7 +246,7 @@ def test_transform_commands_source_with_exclusion_list(run_id, run_timestamp):
                     "--source=libguides",
                     f"--run-id={run_id}",
                     f"--run-timestamp={run_timestamp}",
-                    "--exclusion-list-path=s3://test-timdex-bucket/libguides/config/libguides-exclusions.csv",
+                    "--exclusion-list-path=s3://test-timdex-bucket/config/libguides/exclusions.csv",
                 ]
             }
         ]

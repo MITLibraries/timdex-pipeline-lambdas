@@ -41,9 +41,7 @@ class Config:
         "btrix-sitemaps",
         "btrix-sitemap-urls-output-file",
     )
-    SOURCE_EXCLUSION_LISTS: ClassVar = {
-        "libguides": "/libguides/config/libguides-exclusions.csv"
-    }
+    SOURCE_EXCLUSION_LISTS: ClassVar = {"libguides": "/config/libguides/exclusions.csv"}
     VALID_DATE_FORMATS = ("%Y-%m-%d", "%Y-%m-%dT%H:%M:%SZ")
     VALID_RUN_TYPES = ("full", "daily")
     VALID_STEPS = ("extract", "transform", "load")
