@@ -56,7 +56,7 @@ def generate_extract_command(
             f"--config-yaml-file={input_data['btrix-config-yaml-file']}"
         )
         extract_command.append(
-            f"--metadata-output-file=s3://{timdex_bucket}/{extract_output_file}"
+            f"--records-output-file=s3://{timdex_bucket}/{extract_output_file}"
         )
 
         # optional
