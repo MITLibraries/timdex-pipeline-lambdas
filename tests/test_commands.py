@@ -220,6 +220,39 @@ def test_generate_transform_commands_all_input_fields(run_id, run_timestamp):
     }
 
 
+def test_transform_commands_source_with_exclusion_list(run_id, run_timestamp):
+    input_data = {
+        "next-step": "transform",
+        "run-date": "2022-01-02T12:13:14Z",
+        "run-type": "full",
+        "source": "libguides",
+    }
+    extract_output_files = [
+        "libguides/libguides-2022-01-02-full-extracted-records-to-index.jsonl"
+    ]
+    assert commands.generate_transform_commands(
+        extract_output_files,
+        input_data,
+        "test-timdex-bucket",
+        run_id,
+        run_timestamp,
+    ) == {
+        "files-to-transform": [
+            {
+                "transform-command": [
+                    "--input-file=s3://test-timdex-bucket/libguides/"
+                    "libguides-2022-01-02-full-extracted-records-to-index.jsonl",
+                    "--output-location=s3://test-timdex-bucket/dataset",
+                    "--source=libguides",
+                    f"--run-id={run_id}",
+                    f"--run-timestamp={run_timestamp}",
+                    "--exclusion-list-path=s3://test-timdex-bucket/config/libguides/exclusions.csv",
+                ]
+            }
+        ]
+    }
+
+
 def test_generate_load_commands_daily(run_id):
     assert commands.generate_load_commands(
         "testsource",
