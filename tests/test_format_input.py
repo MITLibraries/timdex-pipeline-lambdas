@@ -59,7 +59,6 @@ def test_lambda_handler_with_next_step_extract_mitlibwebsite_full():
         "extract": {
             "extract-command": [
                 "harvest",
-                "--include-fulltext",
                 "--config-yaml-file=s3://bucket/config.yaml",
                 "--records-output-file=s3://test-timdex-bucket/mitlibwebsite/"
                 "mitlibwebsite-2022-01-02-full-extracted-records-to-index.jsonl",
@@ -94,7 +93,6 @@ def test_lambda_handler_with_next_step_extract_mitlibwebsite_daily():
         "extract": {
             "extract-command": [
                 "harvest",
-                "--include-fulltext",
                 "--config-yaml-file=s3://bucket/config.yaml",
                 "--records-output-file=s3://test-timdex-bucket/mitlibwebsite/"
                 "mitlibwebsite-2022-01-02-daily-extracted-records-to-index.jsonl",

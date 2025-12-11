@@ -49,7 +49,6 @@ def generate_extract_command(
     elif source == "mitlibwebsite":
         # defaults
         extract_command.append("harvest")
-        extract_command.append("--include-fulltext")
 
         # required
         extract_command.append(
