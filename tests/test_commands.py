@@ -95,9 +95,8 @@ def test_generate_extract_command_mitlibwebsite_full():
     ) == {
         "extract-command": [
             "harvest",
-            "--include-fulltext",
             "--config-yaml-file=s3://bucket/config.yaml",
-            "--metadata-output-file=s3://test-timdex-bucket/mitlibwebsite/"
+            "--records-output-file=s3://test-timdex-bucket/mitlibwebsite/"
             "mitlibwebsite-2022-01-02-full-extracted-records-to-index.jsonl",
             "--sitemap=https://libraries.mit.edu/sitemap.xml",
             "--sitemap=https://libraries.mit.edu/news/sitemap.xml",
@@ -122,9 +121,8 @@ def test_generate_extract_command_mitlibwebsite_daily():
     ) == {
         "extract-command": [
             "harvest",
-            "--include-fulltext",
             "--config-yaml-file=s3://bucket/config.yaml",
-            "--metadata-output-file=s3://test-timdex-bucket/mitlibwebsite/"
+            "--records-output-file=s3://test-timdex-bucket/mitlibwebsite/"
             "mitlibwebsite-2022-01-02-daily-extracted-records-to-index.jsonl",
             "--sitemap=https://libraries.mit.edu/sitemap.xml",
             "--sitemap-from-date=2022-01-01",
