@@ -251,6 +251,7 @@ def test_lambda_handler_with_next_step_transform_no_files_present_alma():
         "run-id": "run-abc-123",
     }
     assert format_input.lambda_handler(event, {}) == {
+        "next-step": "load",
         "run-date": "2022-01-02",
         "run-type": "daily",
         "source": "alma",
@@ -269,6 +270,7 @@ def test_lambda_handler_with_next_step_transform_no_files_present_full():
         "run-id": "run-abc-123",
     }
     assert format_input.lambda_handler(event, {}) == {
+        "next-step": "load",
         "run-date": "2022-01-02",
         "run-type": "full",
         "source": "testsource",
@@ -287,6 +289,7 @@ def test_lambda_handler_with_next_step_transform_no_files_present_daily():
         "run-id": "run-abc-123",
     }
     assert format_input.lambda_handler(event, {}) == {
+        "next-step": "load",
         "run-date": "2022-01-02",
         "run-type": "daily",
         "source": "testsource",

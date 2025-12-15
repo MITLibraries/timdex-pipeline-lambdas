@@ -35,12 +35,14 @@ ignore = [
     "D102",
     "D103",
     "D104",
+    "EM102",
     "PLR0912",
     "PLR0913",
     "PLR0915",
     "S321",
     "TD002",
-    "TD003"
+    "TD003",
+    "TRY003"
 ]
 
 # allow autofix behavior for specified rules

@@ -1,5 +1,3 @@
-# ruff: noqa: EM102, TRY003
-
 import logging
 import os
 from typing import Any, ClassVar

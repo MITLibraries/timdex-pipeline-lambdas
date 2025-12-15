@@ -3,6 +3,7 @@
 import contextlib
 import logging
 from datetime import UTC, datetime, timedelta
+from typing import TYPE_CHECKING
 
 import boto3
 from timdex_dataset_api.dataset import TIMDEXDataset  # type: ignore[import-untyped]
@@ -10,73 +11,12 @@ from timdex_dataset_api.dataset import TIMDEXDataset  # type: ignore[import-unty
 from lambdas import errors
 from lambdas.config import Config
 
+if TYPE_CHECKING:
+    from lambdas.format_input import InputPayload
+
 logger = logging.getLogger(__name__)
 
 CONFIG = Config()
-
-
-def validate_input(input_data: dict) -> None:
-    """Validate input to the lambda function.
-
-    Ensures that all required input fields are present and contain valid data.
-    """
-    # All required fields are present
-    if missing_fields := [
-        field for field in CONFIG.REQUIRED_FIELDS if field not in input_data
-    ]:
-        message = (
-            f"Input must include all required fields. Missing fields: {missing_fields}"
-        )
-        raise ValueError(message)
-
-    # Valid next step
-    next_step = input_data["next-step"]
-    if next_step not in CONFIG.VALID_STEPS:
-        message = (
-            f"Input 'next-step' value must be one of: {CONFIG.VALID_STEPS}. Value "
-            f"provided was '{next_step}'"
-        )
-        raise ValueError(message)
-
-    # Valid run type
-    run_type = input_data["run-type"]
-    if run_type not in CONFIG.VALID_RUN_TYPES:
-        message = (
-            f"Input 'run-type' value must be one of: {CONFIG.VALID_RUN_TYPES}. Value "
-            f"provided was '{run_type}'"
-        )
-        raise ValueError(message)
-
-    # If next step is extract step, required harvest fields are present
-    if input_data["next-step"] == "extract":
-        missing_harvest_fields = None
-        if input_data["source"] in CONFIG.GIS_SOURCES:
-            pass  # Currently no specific GeoHarvester requirements
-        elif input_data["source"] == "mitlibwebsite":
-            missing_harvest_fields = set(CONFIG.REQUIRED_BTRIX_HARVEST_FIELDS).difference(
-                set(input_data.keys())
-            )
-            # require previous sitemaps URLs argument for daily runs
-            if (
-                input_data["run-type"] == "daily"
-                and "btrix-previous-sitemap-urls-file" not in input_data
-            ):
-                message = (
-                    "Field 'btrix-previous-sitemap-urls-file' "
-                    "required when 'run-type=daily'"
-                )
-                raise ValueError(message)
-        else:
-            missing_harvest_fields = set(CONFIG.REQUIRED_OAI_HARVEST_FIELDS).difference(
-                set(input_data.keys())
-            )
-
-        if missing_harvest_fields:
-            message = (
-                "Input must include all required harvest fields when starting "
-                f"with harvest step. Missing fields: {list(missing_harvest_fields)}"
-            )
-            raise ValueError(message)
 
 
 def format_run_date(input_date: str) -> str:
@@ -137,15 +77,16 @@ def generate_step_output_filename(
     return f"{prefix}-to-{load_type}{sequence_suffix}.{file_type}"
 
 
-def generate_step_output_prefix(
-    source: str, formatted_run_date: str, run_type: str, step: str
-) -> str:
+def generate_step_output_prefix(input_payload: "InputPayload", step: str) -> str:
     """Generate a TIMDEX file prefix as used for pipeline files in S3.
 
     Given a source, date string, run type (daily or full), and step (extract,
     transform, or harvest), generate a file prefix.
     """
-    return f"{source}/{source}-{formatted_run_date}-{run_type}-{step}ed-records"
+    return (
+        f"{input_payload.source}/{input_payload.source}-{input_payload.run_date}-"
+        f"{input_payload.run_type}-{step}ed-records"
+    )
 
 
 def get_load_type_and_sequence_from_timdex_filename(

@@ -2,6 +2,7 @@ import pytest
 from botocore.exceptions import ClientError
 
 from lambdas import alma_prep
+from lambdas.format_input import InputPayload
 
 
 def test_extract_file_from_source_bucket_to_target_bucket(s3_client):
@@ -56,12 +57,21 @@ def test_get_load_type_and_sequence_from_alma_export_filename_without_sequence()
     assert sequence is None
 
 
-def test_prepare_alma_export_files(s3_client):
+def test_prepare_alma_export_files(s3_client, run_id, run_timestamp):
     starting_files_in_timdex_bucket = s3_client.list_objects_v2(
         Bucket="test-timdex-bucket"
     )["KeyCount"]
     assert starting_files_in_timdex_bucket == 0
-    alma_prep.prepare_alma_export_files("2022-09-12", "daily", "test-timdex-bucket")
+    event = {
+        "next-step": "transform",
+        "run-date": "2022-09-12T12:13:14Z",
+        "run-type": "daily",
+        "source": "alma",
+        "run-id": run_id,
+        "run-timestamp": run_timestamp,
+    }
+    input_payload = InputPayload.from_event(event)
+    alma_prep.prepare_alma_export_files(input_payload)
     ending_files_in_timdex_bucket = s3_client.list_objects_v2(
         Bucket="test-timdex-bucket"
     )["KeyCount"]
