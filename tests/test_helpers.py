@@ -5,6 +5,7 @@ from freezegun import freeze_time
 
 from lambdas import errors, helpers
 from lambdas.config import Config
+from lambdas.format_input import InputPayload
 
 CONFIG = Config()
 
@@ -16,7 +17,7 @@ def test_validate_input_missing_required_field_raises_error():
         "source": "testsource",
     }
     with pytest.raises(ValueError) as error:
-        helpers.validate_input(event)
+        InputPayload.validate_input(event)
     assert "Input must include all required fields. Missing fields: ['run-date']" in str(
         error.value
     )
@@ -30,7 +31,7 @@ def test_validate_input_with_invalid_next_step_raises_error():
         "source": "testsource",
     }
     with pytest.raises(ValueError) as error:
-        helpers.validate_input(event)
+        InputPayload.validate_input(event)
     assert (
         "Input 'next-step' value must be one of: "
         f"{CONFIG.VALID_STEPS}. Value provided was 'wrong'" in str(error.value)
@@ -45,7 +46,7 @@ def test_validate_input_with_invalid_run_type_raises_error():
         "source": "testsource",
     }
     with pytest.raises(ValueError) as error:
-        helpers.validate_input(event)
+        InputPayload.validate_input(event)
     assert (
         f"Input 'run-type' value must be one of: {CONFIG.VALID_RUN_TYPES}. "
         "Value provided was 'wrong'" in str(error.value)
@@ -61,7 +62,7 @@ def test_validate_input_with_missing_harvest_fields_raises_error():
         "oai-pmh-host": "https://example.com/oai",
     }
     with pytest.raises(ValueError) as error:
-        helpers.validate_input(event)
+        InputPayload.validate_input(event)
     assert (
         "Input must include all required harvest fields when starting with "
         "harvest step. Missing fields: ['oai-metadata-format']" in str(error.value)
@@ -75,7 +76,7 @@ def test_validate_input_with_all_required_fields_returns_none():
         "run-type": "full",
         "source": "testsource",
     }
-    assert helpers.validate_input(event) is None
+    assert InputPayload.validate_input(event) is None
 
 
 def test_validate_input_with_all_required_harvest_fields_returns_none():
@@ -87,7 +88,7 @@ def test_validate_input_with_all_required_harvest_fields_returns_none():
         "oai-pmh-host": "https://example.com/oai",
         "oai-metadata-format": "oai_dc",
     }
-    assert helpers.validate_input(event) is None
+    assert InputPayload.validate_input(event) is None
 
 
 def test_validate_input_mitlibwebsite_missing_harvest_fields_raises_error():
@@ -100,7 +101,7 @@ def test_validate_input_mitlibwebsite_missing_harvest_fields_raises_error():
         "btrix-sitemaps": ["https://example.com/sitemap.xml"],
     }
     with pytest.raises(ValueError) as error:
-        helpers.validate_input(event)
+        InputPayload.validate_input(event)
     assert "Input must include all required harvest fields when starting with " in str(
         error.value
     )
@@ -118,7 +119,7 @@ def test_validate_input_mitlibwebsite_daily_missing_previous_urls_raises_error()
         "btrix-sitemap-urls-output-file": "s3://bucket/output.txt",
     }
     with pytest.raises(ValueError) as error:
-        helpers.validate_input(event)
+        InputPayload.validate_input(event)
     assert (
         "Field 'btrix-previous-sitemap-urls-file' required when 'run-type=daily'"
         in str(error.value)
@@ -135,7 +136,7 @@ def test_validate_input_mitlibwebsite_full_without_previous_urls_returns_none():
         "btrix-sitemaps": ["https://example.com/sitemap.xml"],
         "btrix-sitemap-urls-output-file": "s3://bucket/output.txt",
     }
-    assert helpers.validate_input(event) is None
+    assert InputPayload.validate_input(event) is None
 
 
 def test_validate_input_mitlibwebsite_daily_with_all_required_fields_returns_none():
@@ -149,7 +150,7 @@ def test_validate_input_mitlibwebsite_daily_with_all_required_fields_returns_non
         "btrix-sitemap-urls-output-file": "s3://bucket/output.txt",
         "btrix-previous-sitemap-urls-file": "s3://bucket/previous.txt",
     }
-    assert helpers.validate_input(event) is None
+    assert InputPayload.validate_input(event) is None
 
 
 def test_format_run_date_valid_run_date_string():
@@ -201,9 +202,18 @@ def test_generate_step_output_filename_without_sequence():
     )
 
 
-def test_generate_step_output_prefix():
+def test_generate_step_output_prefix(run_id, run_timestamp):
+    event = {
+        "next-step": "transform",
+        "run-date": "2022-01-02T12:13:14Z",
+        "run-type": "full",
+        "source": "testsource",
+        "run-id": run_id,
+        "run-timestamp": run_timestamp,
+    }
+    input_payload = InputPayload.from_event(event)
     assert (
-        helpers.generate_step_output_prefix("testsource", "2022-01-02", "full", "extract")
+        helpers.generate_step_output_prefix(input_payload, "extract")
         == "testsource/testsource-2022-01-02-full-extracted-records"
     )
 

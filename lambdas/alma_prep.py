@@ -9,6 +9,8 @@ import smart_open  # type: ignore[import]
 if TYPE_CHECKING:
     from mypy_boto3_s3.client import S3Client  # pragma: no cover
 
+    from lambdas.format_input import InputPayload
+
 from lambdas import helpers
 from lambdas.config import Config
 
@@ -91,7 +93,7 @@ def get_load_type_and_sequence_from_alma_export_filename(
     return (load_type, sequence)
 
 
-def prepare_alma_export_files(run_date: str, run_type: str, timdex_bucket: str) -> None:
+def prepare_alma_export_files(input_payload: "InputPayload") -> None:
     """Extract and unzip alma export files to the TIMDEX S3 bucket.
 
     Alma files are exported to an SFTP S3 bucket as gzipped tarfiles. Prior to the
@@ -101,14 +103,16 @@ def prepare_alma_export_files(run_date: str, run_type: str, timdex_bucket: str) 
     given export using the export job date and expected export file naming convention,
     then performs the extract, unzip, rename and upload steps.
     """
-    export_job_date = run_date.replace("-", "")
+    export_job_date = input_payload.run_date.replace("-", "")
     alma_bucket = CONFIG.alma_export_bucket
     alma_export_files = helpers.list_s3_files_by_prefix(
         alma_bucket,
-        f"exlibris/timdex/TIMDEX_ALMA_EXPORT_{run_type.upper()}_{export_job_date}",
+        f"exlibris/timdex/TIMDEX_ALMA_EXPORT_{input_payload.run_type.upper()}_{export_job_date}",
     )
     logger.info(
-        "%s Alma export files found in S3 for date %s", len(alma_export_files), run_date
+        "%s Alma export files found in S3 for date %s",
+        len(alma_export_files),
+        input_payload.run_date,
     )
     s3_client = boto3.client("s3")
     for export_file in alma_export_files:
@@ -118,10 +122,10 @@ def prepare_alma_export_files(run_date: str, run_type: str, timdex_bucket: str) 
         extract_output_file = helpers.generate_step_output_filename(
             "alma",
             load_type,
-            helpers.generate_step_output_prefix("alma", run_date, run_type, "extract"),
+            helpers.generate_step_output_prefix(input_payload, "extract"),
             "extract",
             sequence,
         )
         extract_file_from_source_bucket_to_target_bucket(
-            s3_client, alma_bucket, export_file, timdex_bucket, extract_output_file
+            s3_client, alma_bucket, export_file, CONFIG.timdex_bucket, extract_output_file
         )
