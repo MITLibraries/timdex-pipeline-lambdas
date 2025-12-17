@@ -3,6 +3,7 @@ import logging
 import uuid
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
+from typing import Literal
 
 from lambdas import alma_prep, commands, errors, helpers
 from lambdas.config import Config, configure_logger
@@ -11,13 +12,15 @@ logger = logging.getLogger(__name__)
 
 CONFIG = Config()
 
+type NextStep = Literal["extract", "transform", "load", "exit-ok", "exit-error", "end"]
+
 
 @dataclass
 class InputPayload:
     run_date: str
     run_type: str
     source: str
-    next_step: str
+    next_step: NextStep
     run_id: str
     run_timestamp: str
     raw: dict
@@ -112,21 +115,21 @@ class InputPayload:
 
 @dataclass
 class ResultPayload:
+    next_step: NextStep
     run_date: str
     run_type: str
     source: str
     verbose: bool = True
-    next_step: str | None = None
-    success: str | None = None
-    failure: str | None = None
     harvester_type: str | None = None
     extract: dict | None = None
     transform: dict | None = None
     load: dict | None = None
+    message: str | None = None
 
     @classmethod
     def from_input_payload(cls, input_payload: "InputPayload") -> "ResultPayload":
         return cls(
+            next_step=input_payload.next_step,
             run_date=input_payload.run_date,
             run_type=input_payload.run_type,
             source=input_payload.source,
@@ -183,12 +186,18 @@ def handle_transform(input_payload: InputPayload, result: ResultPayload) -> Resu
         )
     except errors.NoFilesError:
         if input_payload.source == "alma" or input_payload.run_type == "full":
-            result.failure = (
+            result.next_step = "exit-error"
+            message = (
                 "There were no transformed files present in the TIMDEX S3 bucket "
                 "for the provided date and source, something likely went wrong."
             )
+            result.message = message
+            logger.error(message)  # noqa: TRY400
         elif input_payload.run_type == "daily":
-            result.success = "There were no daily new/updated/deleted records to harvest."
+            result.next_step = "exit-ok"
+            message = "There were no daily new/updated/deleted records to harvest."
+            logger.info(message)
+            result.message = message
         return result
     logger.info(
         "%s extracted files found in TIMDEX S3 bucket for date '%s' and source '%s'",
@@ -204,11 +213,15 @@ def handle_transform(input_payload: InputPayload, result: ResultPayload) -> Resu
 
 
 def handle_load(input_payload: InputPayload, result: ResultPayload) -> ResultPayload:
+    result.next_step = "end"
     if not helpers.dataset_records_exist_for_run(input_payload.run_id):
-        result.failure = (
-            f"No records were found in the TIMDEX dataset "
+        result.next_step = "exit-ok"
+        message = (
+            f"No transformed records to index or delete were found "
             f"for run_id '{input_payload.run_id}'."
         )
+        logger.warning(message)
+        result.message = message
         return result
     result.load = commands.generate_load_commands(input_payload)
     return result
