@@ -120,6 +120,8 @@ class ResultPayload:
     run_type: str
     source: str
     verbose: bool = True
+    success: bool | None = None  # NOTE: to be removed after StepFunction updates
+    failure: bool | None = None  # NOTE: to be removed after StepFunction updates
     harvester_type: str | None = None
     extract: dict | None = None
     transform: dict | None = None
@@ -187,6 +189,7 @@ def handle_transform(input_payload: InputPayload, result: ResultPayload) -> Resu
     except errors.NoFilesError:
         if input_payload.source == "alma" or input_payload.run_type == "full":
             result.next_step = "exit-error"
+            result.failure = True  # NOTE: to be removed after StepFunction updates
             message = (
                 "There were no transformed files present in the TIMDEX S3 bucket "
                 "for the provided date and source, something likely went wrong."
@@ -195,6 +198,7 @@ def handle_transform(input_payload: InputPayload, result: ResultPayload) -> Resu
             logger.error(message)  # noqa: TRY400
         elif input_payload.run_type == "daily":
             result.next_step = "exit-ok"
+            result.success = True  # NOTE: to be removed after StepFunction updates
             message = "There were no daily new/updated/deleted records to harvest."
             logger.info(message)
             result.message = message
@@ -216,6 +220,7 @@ def handle_load(input_payload: InputPayload, result: ResultPayload) -> ResultPay
     result.next_step = "end"
     if not helpers.dataset_records_exist_for_run(input_payload.run_id):
         result.next_step = "exit-ok"
+        result.success = True  # NOTE: to be removed after StepFunction updates
         message = (
             f"No transformed records to index or delete were found "
             f"for run_id '{input_payload.run_id}'."

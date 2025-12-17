@@ -256,6 +256,7 @@ def test_lambda_handler_with_next_step_transform_no_files_present_alma():
         "run-type": "daily",
         "source": "alma",
         "verbose": False,
+        "failure": True,
         "message": "There were no transformed files present in the TIMDEX S3 bucket "
         "for the provided date and source, something likely went wrong.",
     }
@@ -275,6 +276,7 @@ def test_lambda_handler_with_next_step_transform_no_files_present_full():
         "run-type": "full",
         "source": "testsource",
         "verbose": False,
+        "failure": True,
         "message": "There were no transformed files present in the TIMDEX S3 bucket "
         "for the provided date and source, something likely went wrong.",
     }
@@ -294,6 +296,7 @@ def test_lambda_handler_with_next_step_transform_no_files_present_daily():
         "run-type": "daily",
         "source": "testsource",
         "verbose": False,
+        "success": True,
         "message": "There were no daily new/updated/deleted records to harvest.",
     }
 
@@ -355,6 +358,7 @@ def test_lambda_handler_with_next_step_load_no_files_present():
         "run-type": "daily",
         "source": "testsource",
         "verbose": False,
+        "success": True,
         "message": (
             "No transformed records to index or delete "
             "were found for run_id 'run-abc-123'."
