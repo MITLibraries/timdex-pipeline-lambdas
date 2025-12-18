@@ -251,12 +251,13 @@ def test_lambda_handler_with_next_step_transform_no_files_present_alma():
         "run-id": "run-abc-123",
     }
     assert format_input.lambda_handler(event, {}) == {
-        "next-step": "load",
+        "next-step": "exit-error",
         "run-date": "2022-01-02",
         "run-type": "daily",
         "source": "alma",
         "verbose": False,
-        "failure": "There were no transformed files present in the TIMDEX S3 bucket "
+        "failure": True,
+        "message": "There were no transformed files present in the TIMDEX S3 bucket "
         "for the provided date and source, something likely went wrong.",
     }
 
@@ -270,12 +271,13 @@ def test_lambda_handler_with_next_step_transform_no_files_present_full():
         "run-id": "run-abc-123",
     }
     assert format_input.lambda_handler(event, {}) == {
-        "next-step": "load",
+        "next-step": "exit-error",
         "run-date": "2022-01-02",
         "run-type": "full",
         "source": "testsource",
         "verbose": False,
-        "failure": "There were no transformed files present in the TIMDEX S3 bucket "
+        "failure": True,
+        "message": "There were no transformed files present in the TIMDEX S3 bucket "
         "for the provided date and source, something likely went wrong.",
     }
 
@@ -289,12 +291,13 @@ def test_lambda_handler_with_next_step_transform_no_files_present_daily():
         "run-id": "run-abc-123",
     }
     assert format_input.lambda_handler(event, {}) == {
-        "next-step": "load",
+        "next-step": "exit-ok",
         "run-date": "2022-01-02",
         "run-type": "daily",
         "source": "testsource",
         "verbose": False,
-        "success": "There were no daily new/updated/deleted records to harvest.",
+        "success": True,
+        "message": "There were no daily new/updated/deleted records to harvest.",
     }
 
 
@@ -314,6 +317,7 @@ def test_lambda_handler_with_next_step_load_files_present(s3_client):
         response = format_input.lambda_handler(event, {})
 
     assert response == {
+        "next-step": "end",
         "run-date": "2022-01-02",
         "run-type": "daily",
         "source": "testsource",
@@ -349,11 +353,14 @@ def test_lambda_handler_with_next_step_load_no_files_present():
         response = format_input.lambda_handler(event, {})
 
     assert response == {
+        "next-step": "exit-ok",
         "run-date": "2022-01-02",
         "run-type": "daily",
         "source": "testsource",
         "verbose": False,
-        "failure": (
-            "No records were found in the TIMDEX dataset for run_id 'run-abc-123'."
+        "success": True,
+        "message": (
+            "No transformed records to index or delete "
+            "were found for run_id 'run-abc-123'."
         ),
     }
