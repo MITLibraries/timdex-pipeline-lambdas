@@ -139,3 +139,5 @@ dmypy.json
 # SAM
 .aws-sam/
 tests/sam/env.json
+
+output/
