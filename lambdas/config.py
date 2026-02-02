@@ -42,7 +42,8 @@ class Config:
     SOURCE_EXCLUSION_LISTS: ClassVar = {"libguides": "/config/libguides/exclusions.csv"}
     VALID_DATE_FORMATS = ("%Y-%m-%d", "%Y-%m-%dT%H:%M:%SZ")
     VALID_RUN_TYPES = ("full", "daily")
-    VALID_STEPS = ("extract", "transform", "load")
+    VALID_STEPS = ("extract", "transform", "load", "embeddings-create", "embeddings-load")
+    SKIP_EMBEDDINGS_SOURCES = ("alma", "gisogm")
 
     def __getattr__(self, name: str) -> Any:  # noqa: ANN401
         """Provide dot notation access to configurations and env vars on this class."""

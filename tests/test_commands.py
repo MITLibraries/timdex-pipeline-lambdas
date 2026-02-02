@@ -338,3 +338,60 @@ def test_generate_load_commands_unhandled_run_type(run_id):
     }
     with pytest.raises(ValueError, match=r"Input 'run-type' value must be one of:"):
         InputPayload.from_event(event)
+
+
+def test_generate_embeddings_create_command_cpu(run_id):
+    """Record count below threshold uses cpu compute env."""
+    event = {
+        "next-step": "embeddings-create",
+        "run-date": "2022-01-02",
+        "run-type": "daily",
+        "source": "testsource",
+        "run-id": run_id,
+    }
+    input_payload = InputPayload.from_event(event)
+    result = commands.generate_embeddings_create_command(input_payload, record_count=100)
+
+    assert result["create"]["job_compute_env"] == "cpu"
+    assert "create-embeddings-cpu-" in result["create"]["job_name"]
+    assert f"--run-id={run_id}" in result["create"]["command"]
+
+
+def test_generate_embeddings_create_command_gpu_spot(run_id):
+    """Record count at/above threshold uses gpu-spot compute env."""
+    event = {
+        "next-step": "embeddings-create",
+        "run-date": "2022-01-02",
+        "run-type": "daily",
+        "source": "testsource",
+        "run-id": run_id,
+    }
+    input_payload = InputPayload.from_event(event)
+    result = commands.generate_embeddings_create_command(input_payload, record_count=500)
+
+    assert result["create"]["job_compute_env"] == "gpu-spot"
+    assert "create-embeddings-gpu-spot-" in result["create"]["job_name"]
+
+
+def test_generate_embeddings_load_command(run_id):
+    event = {
+        "next-step": "embeddings-load",
+        "run-date": "2022-01-02",
+        "run-type": "daily",
+        "source": "testsource",
+        "run-id": run_id,
+    }
+    input_payload = InputPayload.from_event(event)
+    result = commands.generate_embeddings_load_command(input_payload)
+
+    assert result == {
+        "load": {
+            "bulk-update-embeddings-command": [
+                "--verbose",
+                "bulk-update-embeddings",
+                "--source=testsource",
+                f"--run-id={run_id}",
+                "s3://test-timdex-bucket/dataset",
+            ],
+        }
+    }

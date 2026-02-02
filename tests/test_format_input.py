@@ -1,3 +1,5 @@
+# ruff: noqa: E501
+
 from unittest.mock import patch
 
 from lambdas import format_input
@@ -17,6 +19,7 @@ def test_lambda_handler_with_next_step_extract():
     assert output == {
         "run-date": "2022-01-02",
         "run-type": "daily",
+        "run-id": "run-abc-123",
         "source": "testsource",
         "verbose": False,
         "harvester-type": "oai",
@@ -52,6 +55,7 @@ def test_lambda_handler_with_next_step_extract_mitlibwebsite_full():
     assert output == {
         "run-date": "2022-01-02",
         "run-type": "full",
+        "run-id": "run-abc-123",
         "source": "mitlibwebsite",
         "verbose": False,
         "harvester-type": "browsertrix",
@@ -86,6 +90,7 @@ def test_lambda_handler_with_next_step_extract_mitlibwebsite_daily():
     assert output == {
         "run-date": "2022-01-02",
         "run-type": "daily",
+        "run-id": "run-abc-123",
         "source": "mitlibwebsite",
         "verbose": False,
         "harvester-type": "browsertrix",
@@ -123,6 +128,7 @@ def test_lambda_handler_with_next_step_transform_files_present(s3_client, run_ti
     assert format_input.lambda_handler(event, {}) == {
         "run-date": "2022-01-02",
         "run-type": "daily",
+        "run-id": "run-abc-123",
         "source": "testsource",
         "verbose": True,
         "next-step": "load",
@@ -156,6 +162,7 @@ def test_lambda_handler_with_next_step_transform_alma_files_present(run_timestam
     assert format_input.lambda_handler(event, {}) == {
         "run-date": "2022-09-12",
         "run-type": "daily",
+        "run-id": "run-abc-123",
         "source": "alma",
         "verbose": False,
         "next-step": "load",
@@ -222,6 +229,7 @@ def test_lambda_handler_with_next_step_transform_auto_generated_timestamp(s3_cli
     assert result == {
         "run-date": "2022-01-02",
         "run-type": "daily",
+        "run-id": "run-abc-123",
         "source": "testsource",
         "verbose": True,
         "next-step": "load",
@@ -254,6 +262,7 @@ def test_lambda_handler_with_next_step_transform_no_files_present_alma():
         "next-step": "exit-error",
         "run-date": "2022-01-02",
         "run-type": "daily",
+        "run-id": "run-abc-123",
         "source": "alma",
         "verbose": False,
         "message": "There were no transformed files present in the TIMDEX S3 bucket "
@@ -273,6 +282,7 @@ def test_lambda_handler_with_next_step_transform_no_files_present_full():
         "next-step": "exit-error",
         "run-date": "2022-01-02",
         "run-type": "full",
+        "run-id": "run-abc-123",
         "source": "testsource",
         "verbose": False,
         "message": "There were no transformed files present in the TIMDEX S3 bucket "
@@ -292,6 +302,7 @@ def test_lambda_handler_with_next_step_transform_no_files_present_daily():
         "next-step": "exit-ok",
         "run-date": "2022-01-02",
         "run-type": "daily",
+        "run-id": "run-abc-123",
         "source": "testsource",
         "verbose": False,
         "message": "There were no daily new/updated/deleted records to harvest.",
@@ -314,9 +325,10 @@ def test_lambda_handler_with_next_step_load_files_present(s3_client):
         response = format_input.lambda_handler(event, {})
 
     assert response == {
-        "next-step": "end",
+        "next-step": "embeddings-create",
         "run-date": "2022-01-02",
         "run-type": "daily",
+        "run-id": "run-abc-123",
         "source": "testsource",
         "verbose": False,
         "load": {
@@ -353,6 +365,7 @@ def test_lambda_handler_with_next_step_load_no_files_present():
         "next-step": "exit-ok",
         "run-date": "2022-01-02",
         "run-type": "daily",
+        "run-id": "run-abc-123",
         "source": "testsource",
         "verbose": False,
         "message": (
@@ -360,3 +373,43 @@ def test_lambda_handler_with_next_step_load_no_files_present():
             "were found for run_id 'run-abc-123'."
         ),
     }
+
+
+def test_lambda_handler_with_next_step_embeddings_create_skip_source():
+    """Source in SKIP_EMBEDDINGS_SOURCES exits early with message."""
+    event = {
+        "run-date": "2022-01-02",
+        "run-type": "daily",
+        "next-step": "embeddings-create",
+        "source": "alma",
+        "run-id": "run-abc-123",
+    }
+
+    with patch("lambdas.format_input.TIMDEXDataset") as mock_dataset:
+        mock_dataset.return_value.metadata.conn.query.return_value.fetchone.return_value = (
+            0,
+        )
+        response = format_input.lambda_handler(event, {})
+
+    assert response["next-step"] == "exit-ok"
+    assert response["message"] == "Not currently creating embeddings for source 'alma'"
+
+
+def test_lambda_handler_with_next_step_embeddings_load_skip_source():
+    """Source in SKIP_EMBEDDINGS_SOURCES exits early with message."""
+    event = {
+        "run-date": "2022-01-02",
+        "run-type": "daily",
+        "next-step": "embeddings-load",
+        "source": "gisogm",
+        "run-id": "run-abc-123",
+    }
+
+    with patch("lambdas.format_input.TIMDEXDataset") as mock_dataset:
+        mock_dataset.return_value.metadata.conn.query.return_value.fetchone.return_value = (
+            0,
+        )
+        response = format_input.lambda_handler(event, {})
+
+    assert response["next-step"] == "exit-ok"
+    assert response["message"] == "Not currently indexing embeddings for source 'gisogm'"
