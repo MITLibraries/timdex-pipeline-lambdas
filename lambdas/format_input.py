@@ -1,9 +1,13 @@
+# ruff: noqa: S608
+
 import json
 import logging
 import uuid
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
 from typing import Literal
+
+from timdex_dataset_api.dataset import TIMDEXDataset  # type: ignore[import-untyped]
 
 from lambdas import alma_prep, commands, errors, helpers
 from lambdas.config import Config, configure_logger
@@ -12,13 +16,22 @@ logger = logging.getLogger(__name__)
 
 CONFIG = Config()
 
-type NextStep = Literal["extract", "transform", "load", "exit-ok", "exit-error", "end"]
+type NextStep = Literal[
+    "extract",
+    "transform",
+    "load",
+    "embeddings-create",
+    "embeddings-load",
+    "exit-ok",
+    "exit-error",
+    "end",
+]
 
 
 @dataclass
 class InputPayload:
     run_date: str
-    run_type: str
+    run_type: Literal["daily", "full"]
     source: str
     next_step: NextStep
     run_id: str
@@ -118,12 +131,14 @@ class ResultPayload:
     next_step: NextStep
     run_date: str
     run_type: str
+    run_id: str
     source: str
     verbose: bool = True
     harvester_type: str | None = None
     extract: dict | None = None
     transform: dict | None = None
     load: dict | None = None
+    embeddings: dict | None = None
     message: str | None = None
 
     @classmethod
@@ -132,6 +147,7 @@ class ResultPayload:
             next_step=input_payload.next_step,
             run_date=input_payload.run_date,
             run_type=input_payload.run_type,
+            run_id=input_payload.run_id,
             source=input_payload.source,
             verbose=input_payload.verbose,
         )
@@ -154,6 +170,10 @@ def lambda_handler(event: dict, _context: dict) -> dict:
         result = handle_transform(input_payload, result)
     elif input_payload.next_step == "load":
         result = handle_load(input_payload, result)
+    elif input_payload.next_step == "embeddings-create":
+        result = handle_embeddings_create(input_payload, result)
+    elif input_payload.next_step == "embeddings-load":
+        result = handle_embeddings_load(input_payload, result)
     else:
         raise ValueError(f"'next-step' not supported: '{input_payload.next_step}'")
 
@@ -213,7 +233,7 @@ def handle_transform(input_payload: InputPayload, result: ResultPayload) -> Resu
 
 
 def handle_load(input_payload: InputPayload, result: ResultPayload) -> ResultPayload:
-    result.next_step = "end"
+    result.next_step = "embeddings-create"
     if not helpers.dataset_records_exist_for_run(input_payload.run_id):
         result.next_step = "exit-ok"
         message = (
@@ -224,4 +244,102 @@ def handle_load(input_payload: InputPayload, result: ResultPayload) -> ResultPay
         result.message = message
         return result
     result.load = commands.generate_load_commands(input_payload)
+    return result
+
+
+def handle_embeddings_create(
+    input_payload: InputPayload, result: ResultPayload
+) -> ResultPayload:
+    """Analyze ETL run and prepare parameters for AWS Batch job to create embeddings.
+
+    There are currently three compute environments we can create embeddings in:
+        - ECS Fargate - "cpu"
+        - EC2 - "gpu"
+        - EC2 Spot Instances - "gpu-spot"
+
+    This lambda handler is responsible for analyzing the size and shape of the ETL run,
+    and determining which AWS Batch compute environment is most appropriate.
+
+    We do not create embeddings for all sources.  Those we skip are configured in
+    CONFIG.SKIP_EMBEDDINGS_SOURCES.
+
+    Additionally, at this time, we do not have a scenario or code path that would
+    utilize the "gpu" compute environment, only "gpu-spot".  This is mostly because we
+    don't require an immediate turnaround for embeddings creation; when the job size
+    calls for a GPU, we have the luxury of waiting for a spot instance.
+    """
+    result.next_step = "embeddings-load"
+
+    if input_payload.source in CONFIG.SKIP_EMBEDDINGS_SOURCES:
+        result.next_step = "exit-ok"
+        result.message = (
+            f"Not currently creating embeddings for source '{input_payload.source}'"
+        )
+        return result
+
+    # retrieve records count for run
+    td = TIMDEXDataset(location=CONFIG.s3_timdex_dataset_location)
+    record_count = td.metadata.conn.query(f"""
+        select count(*)
+        from metadata.records
+        where run_id = '{input_payload.run_id}'
+        and action in ('index')
+        """).fetchone()[0]
+
+    # exit early if no records to create embeddings for
+    if record_count == 0:
+        result.next_step = "exit-ok"
+        result.message = f"No embeddable records found for run '{input_payload.run_id}'."
+        return result
+
+    job_compute_env = (
+        "gpu-spot" if record_count >= commands.GPU_RECORD_COUNT_THRESHOLD else "cpu"
+    )
+    logger.info(
+        f"ETL run '{input_payload.run_id}' had {record_count} records indexed, "
+        f"recommending '{job_compute_env}' compute env."
+    )
+
+    result.embeddings = commands.generate_embeddings_create_command(
+        input_payload, record_count
+    )
+    return result
+
+
+def handle_embeddings_load(
+    input_payload: InputPayload, result: ResultPayload
+) -> ResultPayload:
+    """Prepare TIM command to update documents in Opensearch with embeddings.
+
+    We do not create embeddings for all sources.  Those we skip are configured in
+    CONFIG.SKIP_EMBEDDINGS_SOURCES.
+    """
+    result.next_step = "end"
+
+    if input_payload.source in CONFIG.SKIP_EMBEDDINGS_SOURCES:
+        result.next_step = "exit-ok"
+        result.message = (
+            f"Not currently indexing embeddings for source '{input_payload.source}'"
+        )
+        return result
+
+    # retrieve embeddings count for run
+    td = TIMDEXDataset(location=CONFIG.s3_timdex_dataset_location)
+    embeddings_count = td.metadata.conn.query(f"""
+        select count(*)
+        from data.current_run_embeddings
+        where run_id = '{input_payload.run_id}'
+    """).fetchone()[0]
+
+    # exit early if no embeddings to load
+    if embeddings_count == 0:
+        result.next_step = "exit-ok"
+        result.message = f"No embeddings found for run '{input_payload.run_id}'."
+        return result
+
+    logger.info(
+        f"Preparing TIM command to update {embeddings_count} documents with embeddings."
+    )
+
+    result.embeddings = commands.generate_embeddings_load_command(input_payload)
     return result

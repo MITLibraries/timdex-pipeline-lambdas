@@ -1,4 +1,5 @@
 import logging
+import uuid
 from typing import TYPE_CHECKING
 
 from lambdas import helpers
@@ -10,6 +11,8 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 CONFIG = Config()
+
+GPU_RECORD_COUNT_THRESHOLD = 500
 
 
 def generate_extract_command(input_payload: "InputPayload") -> dict:
@@ -148,3 +151,45 @@ def generate_load_commands(input_payload: "InputPayload") -> dict:
         }
 
     return {"failure": f"Unexpected run-type: '{input_payload.run_type}'"}
+
+
+def generate_embeddings_create_command(
+    input_payload: "InputPayload",
+    record_count: int,
+) -> dict:
+    """Generate AWS Batch job parameters for creating embeddings.
+
+    Determines compute environment based on record count:
+    - cpu (ECS Fargate) for < 500 records
+    - gpu-spot (EC2 Spot) for >= 500 records
+    """
+    job_compute_env = "gpu-spot" if record_count >= GPU_RECORD_COUNT_THRESHOLD else "cpu"
+
+    return {
+        "create": {
+            "job_name": f"create-embeddings-{job_compute_env}-{uuid.uuid4()}",
+            "job_compute_env": job_compute_env,
+            "command": [
+                "--verbose",
+                "create-embeddings",
+                "--strategy=full_record",
+                f"--dataset-location={CONFIG.s3_timdex_dataset_location}",
+                f"--run-id={input_payload.run_id}",
+            ],
+        }
+    }
+
+
+def generate_embeddings_load_command(input_payload: "InputPayload") -> dict:
+    """Generate TIM command to update documents with embeddings."""
+    return {
+        "load": {
+            "bulk-update-embeddings-command": [
+                "--verbose",
+                "bulk-update-embeddings",
+                f"--source={input_payload.source}",
+                f"--run-id={input_payload.run_id}",
+                CONFIG.s3_timdex_dataset_location,
+            ],
+        }
+    }
