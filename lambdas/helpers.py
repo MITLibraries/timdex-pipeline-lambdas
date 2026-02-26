@@ -65,11 +65,12 @@ def generate_step_output_filename(
     """
     sequence_suffix = f"_{sequence}" if sequence else ""
     if step == "extract":
-        file_type = (
-            "jsonl"
-            if (source in CONFIG.GIS_SOURCES or source == "mitlibwebsite")
-            else "xml"
-        )
+        file_type = "xml"
+        if (
+            source in CONFIG.SOURCE_HARVESTER["geo"]
+            or source in CONFIG.SOURCE_HARVESTER["browsertrix"]
+        ):
+            file_type = "jsonl"
     elif load_type == "delete":
         file_type = "txt"
     else:
