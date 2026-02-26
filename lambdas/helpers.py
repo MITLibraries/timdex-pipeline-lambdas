@@ -89,6 +89,16 @@ def generate_step_output_prefix(input_payload: "InputPayload", step: str) -> str
     )
 
 
+def generate_s3_output_uri(input_payload: "InputPayload", step: str) -> str:
+    """Generate full S3 output URI for extract work."""
+    bucket = CONFIG.timdex_bucket
+    output_prefix = generate_step_output_prefix(input_payload, step)
+    output_file = generate_step_output_filename(
+        input_payload.source, "index", output_prefix, step
+    )
+    return f"s3://{bucket}/{output_file}"
+
+
 def get_load_type_and_sequence_from_timdex_filename(
     file_name: str,
 ) -> tuple[str, str | None]:

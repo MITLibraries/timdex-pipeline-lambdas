@@ -73,12 +73,19 @@ class InputPayload:
             )
             raise ValueError(message)
 
-        # If next step is extract step, required harvest fields are present
+        # If next step is extract step, required harvester fields are present
         if input_data["next-step"] == "extract":
             missing_harvest_fields = None
-            if input_data["source"] in CONFIG.GIS_SOURCES:
+
+            harvester_type = None
+            for configured_harvester_type, sources in CONFIG.SOURCE_HARVESTER.items():
+                if input_data["source"] in sources:
+                    harvester_type = configured_harvester_type
+                    break
+
+            if harvester_type == "geo":
                 pass  # Currently no specific GeoHarvester requirements
-            elif input_data["source"] == "mitlibwebsite":
+            elif harvester_type == "browsertrix":
                 missing_harvest_fields = set(
                     CONFIG.REQUIRED_BTRIX_HARVEST_FIELDS
                 ).difference(set(input_data.keys()))
@@ -124,6 +131,10 @@ class InputPayload:
             raw=event,
             verbose=verbose,
         )
+
+    @property
+    def from_date(self) -> str:
+        return helpers.generate_harvest_from_date(self.run_date)
 
 
 @dataclass
@@ -182,12 +193,16 @@ def lambda_handler(event: dict, _context: dict) -> dict:
 
 def handle_extract(input_payload: InputPayload, result: ResultPayload) -> ResultPayload:
     result.next_step = "transform"
-    if input_payload.source in CONFIG.GIS_SOURCES:
-        result.harvester_type = "geo"
-    elif input_payload.source == "mitlibwebsite":
-        result.harvester_type = "browsertrix"
+
+    for harvester_type, sources in CONFIG.SOURCE_HARVESTER.items():
+        if input_payload.source in sources:
+            result.harvester_type = harvester_type
+            break
     else:
-        result.harvester_type = "oai"
+        raise RuntimeError(
+            f"No configured harvester for source '{input_payload.source}'."
+        )
+
     result.extract = commands.generate_extract_command(input_payload)
     return result
 

@@ -39,11 +39,16 @@ class Config:
         "btrix-sitemaps",
         "btrix-sitemap-urls-output-file",
     )
-    SOURCE_EXCLUSION_LISTS: ClassVar = {"libguides": "/config/libguides/exclusions.csv"}
+    SOURCE_EXCLUSION_LISTS: ClassVar[dict[str, str]] = {}
     VALID_DATE_FORMATS = ("%Y-%m-%d", "%Y-%m-%dT%H:%M:%SZ")
     VALID_RUN_TYPES = ("full", "daily")
     VALID_STEPS = ("extract", "transform", "load", "embeddings-create", "embeddings-load")
     SKIP_EMBEDDINGS_SOURCES = ("alma", "gisogm")
+    SOURCE_HARVESTER: ClassVar[dict[str, list[str]]] = {
+        "geo": list(GIS_SOURCES),
+        "browsertrix": ["mitlibwebsite", "libguides"],
+        "oai": ["aspace", "dspace", "researchdatabases"],
+    }
 
     def __getattr__(self, name: str) -> Any:  # noqa: ANN401
         """Provide dot notation access to configurations and env vars on this class."""
