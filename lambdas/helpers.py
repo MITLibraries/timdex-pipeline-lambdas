@@ -98,7 +98,7 @@ def get_load_type_and_sequence_from_timdex_filename(
         load_type: one of: index, delete
         sequence: zero-padded two digit file sequence number if present, otherwise None
     """
-    name_parts = file_name.split(".")[0].split("_")
+    name_parts = file_name.split(".", maxsplit=1)[0].split("_")
     load_type = name_parts[0].split("-")[-1]
     sequence = name_parts[1] if len(name_parts) > 1 else None
     return (load_type, sequence or None)
