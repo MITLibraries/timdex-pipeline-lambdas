@@ -65,11 +65,12 @@ def generate_step_output_filename(
     """
     sequence_suffix = f"_{sequence}" if sequence else ""
     if step == "extract":
-        file_type = (
-            "jsonl"
-            if (source in CONFIG.GIS_SOURCES or source == "mitlibwebsite")
-            else "xml"
-        )
+        file_type = "xml"
+        if (
+            source in CONFIG.SOURCE_HARVESTER["geo"]
+            or source in CONFIG.SOURCE_HARVESTER["browsertrix"]
+        ):
+            file_type = "jsonl"
     elif load_type == "delete":
         file_type = "txt"
     else:
@@ -89,6 +90,16 @@ def generate_step_output_prefix(input_payload: "InputPayload", step: str) -> str
     )
 
 
+def generate_s3_output_uri(input_payload: "InputPayload", step: str) -> str:
+    """Generate full S3 output URI for extract work."""
+    bucket = CONFIG.timdex_bucket
+    output_prefix = generate_step_output_prefix(input_payload, step)
+    output_file = generate_step_output_filename(
+        input_payload.source, "index", output_prefix, step
+    )
+    return f"s3://{bucket}/{output_file}"
+
+
 def get_load_type_and_sequence_from_timdex_filename(
     file_name: str,
 ) -> tuple[str, str | None]:
@@ -98,7 +109,7 @@ def get_load_type_and_sequence_from_timdex_filename(
         load_type: one of: index, delete
         sequence: zero-padded two digit file sequence number if present, otherwise None
     """
-    name_parts = file_name.split(".")[0].split("_")
+    name_parts = file_name.split(".", maxsplit=1)[0].split("_")
     load_type = name_parts[0].split("-")[-1]
     sequence = name_parts[1] if len(name_parts) > 1 else None
     return (load_type, sequence or None)

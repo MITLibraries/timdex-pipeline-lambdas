@@ -2,7 +2,19 @@ import pytest
 from freezegun import freeze_time
 
 from lambdas import commands
+from lambdas.config import Config
 from lambdas.format_input import InputPayload
+
+
+@pytest.fixture(autouse=True)
+def _configure_testsource_harvester(monkeypatch):
+    source_harvester = {
+        harvester_type: [*sources]
+        for harvester_type, sources in Config.SOURCE_HARVESTER.items()
+    }
+    if "testsource" not in source_harvester["oai"]:
+        source_harvester["oai"].append("testsource")
+    monkeypatch.setattr(Config, "SOURCE_HARVESTER", source_harvester)
 
 
 def test_generate_extract_command_required_input_fields():
@@ -10,7 +22,7 @@ def test_generate_extract_command_required_input_fields():
         "run-date": "2022-01-02T12:13:14Z",
         "run-type": "daily",
         "next-step": "extract",
-        "source": "testsource",
+        "source": "researchdatabases",
         "oai-pmh-host": "https://example.com/oai",
         "oai-metadata-format": "oai_dc",
     }
@@ -18,8 +30,8 @@ def test_generate_extract_command_required_input_fields():
     assert commands.generate_extract_command(input_payload) == {
         "extract-command": [
             "--host=https://example.com/oai",
-            "--output-file=s3://test-timdex-bucket/testsource/"
-            "testsource-2022-01-02-daily-extracted-records-to-index.xml",
+            "--output-file=s3://test-timdex-bucket/researchdatabases/"
+            "researchdatabases-2022-01-02-daily-extracted-records-to-index.xml",
             "harvest",
             "--metadata-format=oai_dc",
             "--from-date=2022-01-01",
@@ -213,18 +225,26 @@ def test_generate_transform_commands_all_input_fields(run_id, run_timestamp):
     }
 
 
-def test_transform_commands_source_with_exclusion_list(run_id, run_timestamp):
+def test_transform_commands_source_with_exclusion_list(
+    run_id, run_timestamp, monkeypatch
+):
+    monkeypatch.setattr(
+        Config,
+        "SOURCE_EXCLUSION_LISTS",
+        {"testsource": "/config/testsource/exclusions.csv"},
+    )
+
     event = {
         "next-step": "transform",
         "run-date": "2022-01-02T12:13:14Z",
         "run-type": "full",
-        "source": "libguides",
+        "source": "testsource",
         "run-id": run_id,
         "run-timestamp": run_timestamp,
     }
     input_payload = InputPayload.from_event(event)
     extract_output_files = [
-        "libguides/libguides-2022-01-02-full-extracted-records-to-index.jsonl"
+        "testsource/testsource-2022-01-02-full-extracted-records-to-index.xml"
     ]
     assert commands.generate_transform_commands(
         input_payload,
@@ -233,13 +253,13 @@ def test_transform_commands_source_with_exclusion_list(run_id, run_timestamp):
         "files-to-transform": [
             {
                 "transform-command": [
-                    "--input-file=s3://test-timdex-bucket/libguides/"
-                    "libguides-2022-01-02-full-extracted-records-to-index.jsonl",
+                    "--input-file=s3://test-timdex-bucket/testsource/"
+                    "testsource-2022-01-02-full-extracted-records-to-index.xml",
                     "--output-location=s3://test-timdex-bucket/dataset",
-                    "--source=libguides",
+                    "--source=testsource",
                     f"--run-id={run_id}",
                     f"--run-timestamp={run_timestamp}",
-                    "--exclusion-list-path=s3://test-timdex-bucket/config/libguides/exclusions.csv",
+                    "--exclusion-list-path=s3://test-timdex-bucket/config/testsource/exclusions.csv",
                 ]
             }
         ]

@@ -80,7 +80,7 @@ def get_load_type_and_sequence_from_alma_export_filename(
             indexed, and either the file sequence number if the export contained
             multiple files or None if no sequence number is present.
     """
-    name_parts = export_file_name.split(".")[0].split("_")
+    name_parts = export_file_name.split(".", maxsplit=1)[0].split("_")
     last_part = name_parts[-1]
     if last_part.isdigit():
         sequence = last_part.zfill(2)

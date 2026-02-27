@@ -10,7 +10,7 @@ def test_lambda_handler_with_next_step_extract():
         "run-date": "2022-01-02T12:13:14Z",
         "run-type": "daily",
         "next-step": "extract",
-        "source": "testsource",
+        "source": "researchdatabases",
         "run-id": "run-abc-123",
         "oai-pmh-host": "https://example.com/oai",
         "oai-metadata-format": "oai_dc",
@@ -20,15 +20,15 @@ def test_lambda_handler_with_next_step_extract():
         "run-date": "2022-01-02",
         "run-type": "daily",
         "run-id": "run-abc-123",
-        "source": "testsource",
+        "source": "researchdatabases",
         "verbose": False,
         "harvester-type": "oai",
         "next-step": "transform",
         "extract": {
             "extract-command": [
                 "--host=https://example.com/oai",
-                "--output-file=s3://test-timdex-bucket/testsource/"
-                "testsource-2022-01-02-daily-extracted-records-to-index.xml",
+                "--output-file=s3://test-timdex-bucket/researchdatabases/"
+                "researchdatabases-2022-01-02-daily-extracted-records-to-index.xml",
                 "harvest",
                 "--metadata-format=oai_dc",
                 "--from-date=2022-01-01",
