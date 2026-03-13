@@ -100,7 +100,7 @@ def _generate_browsertrix_harvester_extract_command(
         cmd.append(f"--previous-sitemap-urls-file={sitemap_urls_previous}")
 
     if btrix_args_json := input_payload.raw.get("btrix-args-json"):
-        cmd.append(f"""--btrix-args-json='{btrix_args_json}'""")
+        cmd.append(f"""--btrix-args-json={btrix_args_json}""")
 
     return cmd
 

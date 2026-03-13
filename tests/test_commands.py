@@ -110,7 +110,7 @@ def test_generate_extract_command_browsertrix_full():
             "--sitemap=https://libraries.mit.edu/sitemap.xml",
             "--sitemap=https://libraries.mit.edu/news/sitemap.xml",
             "--sitemap-urls-output-file=s3://bucket/output.txt",
-            '--btrix-args-json=\'{"--hello":"world"}\'',
+            '--btrix-args-json={"--hello":"world"}',
         ]
     }
 
@@ -138,7 +138,7 @@ def test_generate_extract_command_browsertrix_daily():
             "--sitemap-from-date=2022-01-01",
             "--sitemap-urls-output-file=s3://bucket/output.txt",
             "--previous-sitemap-urls-file=s3://bucket/previous.txt",
-            '--btrix-args-json=\'{"--hello":"world"}\'',
+            '--btrix-args-json={"--hello":"world"}',
         ]
     }
 
