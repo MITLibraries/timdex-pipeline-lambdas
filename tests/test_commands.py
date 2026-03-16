@@ -86,7 +86,7 @@ def test_generate_extract_command_geoharvester():
     }
 
 
-def test_generate_extract_command_mitlibwebsite_full():
+def test_generate_extract_command_browsertrix_full():
     event = {
         "run-date": "2022-01-02T12:13:14Z",
         "run-type": "full",
@@ -98,6 +98,7 @@ def test_generate_extract_command_mitlibwebsite_full():
             "https://libraries.mit.edu/news/sitemap.xml",
         ],
         "btrix-sitemap-urls-output-file": "s3://bucket/output.txt",
+        "btrix-args-json": '{"--hello":"world"}',
     }
     input_payload = InputPayload.from_event(event)
     assert commands.generate_extract_command(input_payload) == {
@@ -109,11 +110,12 @@ def test_generate_extract_command_mitlibwebsite_full():
             "--sitemap=https://libraries.mit.edu/sitemap.xml",
             "--sitemap=https://libraries.mit.edu/news/sitemap.xml",
             "--sitemap-urls-output-file=s3://bucket/output.txt",
+            '--btrix-args-json={"--hello":"world"}',
         ]
     }
 
 
-def test_generate_extract_command_mitlibwebsite_daily():
+def test_generate_extract_command_browsertrix_daily():
     event = {
         "run-date": "2022-01-02T12:13:14Z",
         "run-type": "daily",
@@ -123,6 +125,7 @@ def test_generate_extract_command_mitlibwebsite_daily():
         "btrix-sitemaps": ["https://libraries.mit.edu/sitemap.xml"],
         "btrix-sitemap-urls-output-file": "s3://bucket/output.txt",
         "btrix-previous-sitemap-urls-file": "s3://bucket/previous.txt",
+        "btrix-args-json": '{"--hello":"world"}',
     }
     input_payload = InputPayload.from_event(event)
     assert commands.generate_extract_command(input_payload) == {
@@ -135,6 +138,7 @@ def test_generate_extract_command_mitlibwebsite_daily():
             "--sitemap-from-date=2022-01-01",
             "--sitemap-urls-output-file=s3://bucket/output.txt",
             "--previous-sitemap-urls-file=s3://bucket/previous.txt",
+            '--btrix-args-json={"--hello":"world"}',
         ]
     }
 
