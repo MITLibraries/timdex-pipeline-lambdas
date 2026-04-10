@@ -75,16 +75,16 @@ The output will vary slightly depending on the provided `source`, as these somet
 ## Development
 
 * To preview a list of available Makefile commands: `make help`
-* To install with dev dependencies: `make install`
+* To install with dev dependencies and git hooks: `make install`
 * To update dependencies: `make update`
 * To run unit tests: `make test`
 * To lint the repo: `make lint`
+* To auto-fix formatting and lint issues: `make lint-fix`
+* To run dependency vulnerability checks: `make security`
 
-The Makefile also includes account specific `dist`, `publish`, and `update-format-lambda` commands.
+The Makefile also includes account-specific `dist`, `publish`, and `update-lambda` commands for developer-driven dev deploys, along with emergency stage shortcuts.
 
-The `update-format-lambda` is required anytime an image contains a change to the format function is published to the ECR in order for the Format Input Lambda to use the updated code.
-
-GitHub Actions is configured to update the Lambda function with every push to the `main` branch.
+GitHub Actions is configured with pull-request CI, a dev image build workflow for PRs to `main`, a stage image build workflow for pushes to `main`, and a prod promote workflow on release publication.
 
 ### Running Locally with [AWS SAM](https://aws.amazon.com/serverless/sam/)
 
@@ -110,8 +110,10 @@ make sam-build
 
 3- Run a test invocation:
 ```shell
-make sam-example-libguides-extract
+make sam-invoke
 ```
+
+The existing `make sam-example-libguides-extract` target remains available as an alias.
 
 Note the final lines of the output in the terminal is what the lambda would have returned:
 
