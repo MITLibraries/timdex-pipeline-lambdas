@@ -20,6 +20,4 @@ jobs:
       AWS_REGION: us-east-1
       GHA_ROLE: timdex-pipeline-lambdas-gha-stage
       ECR: timdex-pipeline-lambdas-stage
-      # Custom function name preserved; this repo deploys the timdex-format lambda.
-      FUNCTION: timdex-format-stage
-      # PREBUILD: # only if there is some pre-build dependency
+      FUNCTION: timdex-format-stage # Lambda function name differs from repository

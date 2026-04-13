@@ -19,5 +19,4 @@ jobs:
       GHA_ROLE_PROD: timdex-pipeline-lambdas-gha-prod
       ECR_STAGE: timdex-pipeline-lambdas-stage
       ECR_PROD: timdex-pipeline-lambdas-prod
-      # Custom function name preserved; this repo deploys the timdex-format lambda.
-      FUNCTION: timdex-format-prod
+      FUNCTION: timdex-format-prod # Lambda function name differs from repository
