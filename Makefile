@@ -113,33 +113,6 @@ docker-clean: # Clean up Docker detritus
 	docker buildx rm $(ECR_NAME_DEV) || true
 	@rm -rf .arch_tag
 
-### Terraform-generated manual shortcuts for deploying to Stage ###
-### This requires that ECR_NAME_STAGE, ECR_URL_STAGE, and FUNCTION_STAGE environment variables are
-### set locally by the developer and that the developer has authenticated to the correct AWS Account.
-### The values for the environment variables can be found in the stage-build.yml caller workflow.
-dist-stage: check-arch # Only use in an emergency
-	@ARCH_TAG=$$(cat .arch_tag); \
-	docker buildx inspect $(ECR_NAME_STAGE) >/dev/null 2>&1 || docker buildx create --name $(ECR_NAME_STAGE) --use; \
-	docker buildx use $(ECR_NAME_STAGE); \
-	docker buildx build --platform $(CPU_ARCH) \
-		--load \
-		--tag $(ECR_URL_STAGE):$$ARCH_TAG \
-		--tag $(ECR_URL_STAGE):make-$$ARCH_TAG \
-		--tag $(ECR_URL_STAGE):make-$(shell git describe --always) \
-		--tag $(ECR_NAME_STAGE):$$ARCH_TAG \
-		.
-
-publish-stage: dist-stage # Only use in an emergency
-	@ARCH_TAG=$$(cat .arch_tag); \
-	aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin $(ECR_URL_STAGE); \
-	docker push $(ECR_URL_STAGE):$$ARCH_TAG; \
-	docker push $(ECR_URL_STAGE):make-$$ARCH_TAG; \
-	docker push $(ECR_URL_STAGE):make-$(shell git describe --always)
-
-update-lambda-stage: check-arch # Updates the lambda with the most recent emergency stage image
-	@ARCH_TAG=$$(cat .arch_tag); \
-	aws lambda update-function-code --function-name $(FUNCTION_STAGE) --image-uri $(ECR_URL_STAGE):$$ARCH_TAG
-
 ####################################
 # SAM Lambda
 ####################################
