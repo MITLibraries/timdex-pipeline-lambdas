@@ -55,7 +55,7 @@ def extract_file_from_source_bucket_to_target_bucket(
         )
 
 
-def extract_tarfile(tar_file: IO[bytes]) -> Generator[IO[bytes], None, None]:
+def extract_tarfile(tar_file: IO[bytes]) -> Generator[IO[bytes]]:
     """Extract the contents of a tarfile and yield each member."""
     with tarfile.open(fileobj=tar_file) as tar:
         for member in tar.getmembers():
