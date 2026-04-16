@@ -203,9 +203,11 @@ def generate_embeddings_create_command(
 
     Determines compute environment based on record count:
     - cpu (ECS Fargate) for < 500 records
-    - gpu-spot (EC2 Spot) for >= 500 records
+    - gpu (EC2 On-Demand) for >= 500 records
+        - NOTE: temporary shift to on-demand only until we have full support for
+        timdex-embeddings batch job restarting if a spot EC2 instance is terminated
     """
-    job_compute_env = "gpu-spot" if record_count >= GPU_RECORD_COUNT_THRESHOLD else "cpu"
+    job_compute_env = "gpu" if record_count >= GPU_RECORD_COUNT_THRESHOLD else "cpu"
 
     return {
         "create": {
