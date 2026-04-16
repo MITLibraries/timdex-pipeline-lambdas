@@ -381,8 +381,12 @@ def test_generate_embeddings_create_command_cpu(run_id):
     assert f"--run-id={run_id}" in result["create"]["command"]
 
 
-def test_generate_embeddings_create_command_gpu_spot(run_id):
-    """Record count at/above threshold uses gpu-spot compute env."""
+def test_generate_embeddings_create_command_gpu(run_id):
+    """Record count at/above threshold uses gpu compute env.
+
+    NOTE: this use of gpu workflow will likely switch back to gpu-spot when
+    timdex-embeddings supports retry for gpu-spot instance terminations.
+    """
     event = {
         "next-step": "embeddings-create",
         "run-date": "2022-01-02",
@@ -393,8 +397,8 @@ def test_generate_embeddings_create_command_gpu_spot(run_id):
     input_payload = InputPayload.from_event(event)
     result = commands.generate_embeddings_create_command(input_payload, record_count=500)
 
-    assert result["create"]["job_compute_env"] == "gpu-spot"
-    assert "create-embeddings-gpu-spot-" in result["create"]["job_name"]
+    assert result["create"]["job_compute_env"] == "gpu"
+    assert "create-embeddings-gpu-" in result["create"]["job_name"]
 
 
 def test_generate_embeddings_load_command(run_id):
