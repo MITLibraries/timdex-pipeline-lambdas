@@ -1,5 +1,3 @@
-# ruff: noqa: E501
-
 from unittest.mock import patch
 
 from lambdas import format_input
@@ -386,9 +384,7 @@ def test_lambda_handler_with_next_step_embeddings_create_skip_source():
     }
 
     with patch("lambdas.format_input.TIMDEXDataset") as mock_dataset:
-        mock_dataset.return_value.metadata.conn.query.return_value.fetchone.return_value = (
-            0,
-        )
+        mock_dataset.return_value.conn.query.return_value.fetchone.return_value = (0,)
         response = format_input.lambda_handler(event, {})
 
     assert response["next-step"] == "exit-ok"
@@ -406,9 +402,7 @@ def test_lambda_handler_with_next_step_embeddings_load_skip_source():
     }
 
     with patch("lambdas.format_input.TIMDEXDataset") as mock_dataset:
-        mock_dataset.return_value.metadata.conn.query.return_value.fetchone.return_value = (
-            0,
-        )
+        mock_dataset.return_value.conn.query.return_value.fetchone.return_value = (0,)
         response = format_input.lambda_handler(event, {})
 
     assert response["next-step"] == "exit-ok"

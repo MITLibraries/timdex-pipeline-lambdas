@@ -141,7 +141,7 @@ def dataset_records_exist_for_run(run_id: str) -> bool:
     """
     td = TIMDEXDataset(location=CONFIG.s3_timdex_dataset_location)
 
-    etl_run_count = td.metadata.conn.query(f"""
+    etl_run_count = td.conn.query(f"""
         select count(*)
         from metadata.records
         where run_id = '{run_id}'
