@@ -294,7 +294,7 @@ def handle_embeddings_create(
 
     # retrieve records count for run
     td = TIMDEXDataset(location=CONFIG.s3_timdex_dataset_location)
-    record_count = td.metadata.conn.query(f"""
+    record_count = td.conn.query(f"""
         select count(*)
         from metadata.records
         where run_id = '{input_payload.run_id}'
@@ -340,9 +340,9 @@ def handle_embeddings_load(
 
     # retrieve embeddings count for run
     td = TIMDEXDataset(location=CONFIG.s3_timdex_dataset_location)
-    embeddings_count = td.metadata.conn.query(f"""
+    embeddings_count = td.conn.query(f"""
         select count(*)
-        from data.current_run_embeddings
+        from metadata.current_run_embeddings
         where run_id = '{input_payload.run_id}'
     """).fetchone()[0]
 
