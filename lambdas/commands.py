@@ -118,7 +118,7 @@ def _generate_oai_harvester_extract_command(
         ]
     )
 
-    if input_payload.source in {"aspace", "dspace"}:
+    if input_payload.source == "aspace":
         cmd.append("--method=get")
 
     cmd.append(f"--metadata-format={input_payload.raw['oai-metadata-format']}")
