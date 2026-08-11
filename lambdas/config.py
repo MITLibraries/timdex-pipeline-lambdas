@@ -18,6 +18,7 @@ class Config:
         "timdex": [
             "alma",
             "aspace",
+            "digitalcollections",
             "dspace",
             "libguides",
             "mitlibwebsite",
@@ -25,6 +26,7 @@ class Config:
         ],
         "use": [
             "aspace",
+            "digitalcollections",
             "dspace",
             *list(GIS_SOURCES),
             "libguides",
@@ -47,7 +49,7 @@ class Config:
     SOURCE_HARVESTER: ClassVar[dict[str, list[str]]] = {
         "geo": list(GIS_SOURCES),
         "browsertrix": ["mitlibwebsite", "libguides"],
-        "oai": ["aspace", "dspace", "researchdatabases"],
+        "oai": ["aspace", "digitalcollections", "dspace", "researchdatabases"],
     }
 
     def __getattr__(self, name: str) -> Any:  # noqa: ANN401
