@@ -30,8 +30,10 @@ def test_generate_extract_command_required_input_fields():
     assert commands.generate_extract_command(input_payload) == {
         "extract-command": [
             "--host=https://example.com/oai",
-            "--output-file=s3://test-timdex-bucket/researchdatabases/"
-            "researchdatabases-2022-01-02-daily-extracted-records-to-index.xml",
+            (
+                "--output-file=s3://test-timdex-bucket/researchdatabases/"
+                "researchdatabases-2022-01-02-daily-extracted-records-to-index.xml"
+            ),
             "harvest",
             "--metadata-format=oai_dc",
             "--from-date=2022-01-01",
@@ -55,8 +57,10 @@ def test_generate_extract_command_all_input_fields():
         "extract-command": [
             "--verbose",
             "--host=https://example.com/oai",
-            "--output-file=s3://test-timdex-bucket/aspace/"
-            "aspace-2022-01-02-full-extracted-records-to-index.xml",
+            (
+                "--output-file=s3://test-timdex-bucket/aspace/"
+                "aspace-2022-01-02-full-extracted-records-to-index.xml"
+            ),
             "harvest",
             "--method=get",
             "--metadata-format=oai_dc",
@@ -79,8 +83,10 @@ def test_generate_extract_command_geoharvester():
             "harvest",
             "--harvest-type=incremental",
             "--from-date=2022-01-01",
-            "--output-file=s3://test-timdex-bucket/gismit/"
-            "gismit-2022-01-02-daily-extracted-records-to-index.jsonl",
+            (
+                "--output-file=s3://test-timdex-bucket/gismit/"
+                "gismit-2022-01-02-daily-extracted-records-to-index.jsonl"
+            ),
             "mit",
         ]
     }
@@ -105,8 +111,10 @@ def test_generate_extract_command_browsertrix_full():
         "extract-command": [
             "harvest",
             "--config-yaml-file=s3://bucket/config.yaml",
-            "--records-output-file=s3://test-timdex-bucket/mitlibwebsite/"
-            "mitlibwebsite-2022-01-02-full-extracted-records-to-index.jsonl",
+            (
+                "--records-output-file=s3://test-timdex-bucket/mitlibwebsite/"
+                "mitlibwebsite-2022-01-02-full-extracted-records-to-index.jsonl"
+            ),
             "--sitemap=https://libraries.mit.edu/sitemap.xml",
             "--sitemap=https://libraries.mit.edu/news/sitemap.xml",
             "--sitemap-urls-output-file=s3://bucket/output.txt",
@@ -132,8 +140,10 @@ def test_generate_extract_command_browsertrix_daily():
         "extract-command": [
             "harvest",
             "--config-yaml-file=s3://bucket/config.yaml",
-            "--records-output-file=s3://test-timdex-bucket/mitlibwebsite/"
-            "mitlibwebsite-2022-01-02-daily-extracted-records-to-index.jsonl",
+            (
+                "--records-output-file=s3://test-timdex-bucket/mitlibwebsite/"
+                "mitlibwebsite-2022-01-02-daily-extracted-records-to-index.jsonl"
+            ),
             "--sitemap=https://libraries.mit.edu/sitemap.xml",
             "--sitemap-from-date=2022-01-01",
             "--sitemap-urls-output-file=s3://bucket/output.txt",
@@ -163,8 +173,10 @@ def test_generate_transform_commands_required_input_fields(run_id, run_timestamp
         "files-to-transform": [
             {
                 "transform-command": [
-                    "--input-file=s3://test-timdex-bucket/testsource/"
-                    "testsource-2022-01-02-full-extracted-records-to-index.xml",
+                    (
+                        "--input-file=s3://test-timdex-bucket/testsource/"
+                        "testsource-2022-01-02-full-extracted-records-to-index.xml"
+                    ),
                     "--output-location=s3://test-timdex-bucket/dataset",
                     "--source=testsource",
                     f"--run-id={run_id}",
@@ -197,8 +209,10 @@ def test_generate_transform_commands_all_input_fields(run_id, run_timestamp):
         "files-to-transform": [
             {
                 "transform-command": [
-                    "--input-file=s3://test-timdex-bucket/testsource/"
-                    "testsource-2022-01-02-daily-extracted-records-to-index_01.xml",
+                    (
+                        "--input-file=s3://test-timdex-bucket/testsource/"
+                        "testsource-2022-01-02-daily-extracted-records-to-index_01.xml"
+                    ),
                     "--output-location=s3://test-timdex-bucket/dataset",
                     "--source=testsource",
                     f"--run-id={run_id}",
@@ -207,8 +221,10 @@ def test_generate_transform_commands_all_input_fields(run_id, run_timestamp):
             },
             {
                 "transform-command": [
-                    "--input-file=s3://test-timdex-bucket/testsource/"
-                    "testsource-2022-01-02-daily-extracted-records-to-index_02.xml",
+                    (
+                        "--input-file=s3://test-timdex-bucket/testsource/"
+                        "testsource-2022-01-02-daily-extracted-records-to-index_02.xml"
+                    ),
                     "--output-location=s3://test-timdex-bucket/dataset",
                     "--source=testsource",
                     f"--run-id={run_id}",
@@ -217,8 +233,10 @@ def test_generate_transform_commands_all_input_fields(run_id, run_timestamp):
             },
             {
                 "transform-command": [
-                    "--input-file=s3://test-timdex-bucket/testsource/"
-                    "testsource-2022-01-02-daily-extracted-records-to-delete.xml",
+                    (
+                        "--input-file=s3://test-timdex-bucket/testsource/"
+                        "testsource-2022-01-02-daily-extracted-records-to-delete.xml"
+                    ),
                     "--output-location=s3://test-timdex-bucket/dataset",
                     "--source=testsource",
                     f"--run-id={run_id}",
@@ -257,8 +275,10 @@ def test_transform_commands_source_with_exclusion_list(
         "files-to-transform": [
             {
                 "transform-command": [
-                    "--input-file=s3://test-timdex-bucket/testsource/"
-                    "testsource-2022-01-02-full-extracted-records-to-index.xml",
+                    (
+                        "--input-file=s3://test-timdex-bucket/testsource/"
+                        "testsource-2022-01-02-full-extracted-records-to-index.xml"
+                    ),
                     "--output-location=s3://test-timdex-bucket/dataset",
                     "--source=testsource",
                     f"--run-id={run_id}",
