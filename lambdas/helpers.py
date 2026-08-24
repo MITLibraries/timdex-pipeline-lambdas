@@ -6,7 +6,9 @@ from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING
 
 import boto3
-from timdex_dataset_api.dataset import TIMDEXDataset  # type: ignore[import-untyped]
+import pandas as pd
+from duckdb import CatalogException
+from timdex_dataset_api.dataset import TIMDEXDataset
 
 from lambdas import errors
 from lambdas.config import Config
@@ -148,3 +150,76 @@ def dataset_records_exist_for_run(run_id: str) -> bool:
         and action in ('index','delete')
         """).fetchone()[0]
     return etl_run_count > 0
+
+
+def get_run_metrics(run_id: str) -> dict:
+    """Generate metrics for the TIMDEX ETL run."""
+    logger.info(f"Retrieving metrics for run: {run_id}")
+
+    td = TIMDEXDataset(location=CONFIG.s3_timdex_dataset_location)
+
+    # get record metrics
+    records_count = td.conn.query(
+        f"""
+        select
+            count(*)
+        from metadata.records
+        where run_id='{run_id}'
+        ;"""
+    ).fetchone()[0]
+
+    actions_count = pd.DataFrame()
+    if records_count > 0:
+        actions_count = td.conn.query(
+            f"""
+            select
+                action,
+                count(*) as action_count
+            from metadata.records
+            where run_id='{run_id}'
+            group by all
+            ;"""
+        ).to_df()
+
+    # embeddings
+    try:
+        embeddings_count = td.conn.query(
+            f"""
+            select
+                count(*)
+            from metadata.current_run_embeddings
+            where run_id='{run_id}'
+            ;"""
+        ).fetchone()[0]
+    except CatalogException as exception:
+        logger.warning(exception)
+        embeddings_count = 0
+
+    # fulltexts
+    try:
+        fulltexts_count = td.conn.query(
+            f"""
+            select
+                count(*)
+            from metadata.current_run_fulltexts
+            where run_id='{run_id}'
+            ;"""
+        ).fetchone()[0]
+    except CatalogException as exception:
+        logger.warning(exception)
+        fulltexts_count = 0
+
+    return {
+        "records": {
+            "count": records_count,
+            "actions": {
+                row["action"]: row["action_count"] for _, row in actions_count.iterrows()
+            },
+        },
+        "embeddings": {
+            "count": embeddings_count,
+        },
+        "fulltexts": {
+            "count": fulltexts_count,
+        },
+    }

@@ -4,6 +4,8 @@ version = "2.7.0"
 requires-python = ">=3.13"
 dependencies = [
   "boto3",
+  "duckdb",
+  "pandas",
   "smart-open",
   "timdex-dataset-api @ git+https://github.com/MITLibraries/timdex-dataset-api.git",
 ]
@@ -27,6 +29,14 @@ dev = [
 disallow_untyped_calls = true
 disallow_untyped_defs = true
 exclude = ["tests/", "output/"]
+
+[[tool.mypy.overrides]]
+module = [
+  "pandas",
+  "timdex_dataset_api",
+  "timdex_dataset_api.*",
+]
+ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 log_level = "INFO"

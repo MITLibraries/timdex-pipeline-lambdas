@@ -44,13 +44,27 @@ class Config:
     SOURCE_EXCLUSION_LISTS: ClassVar[dict[str, str]] = {}
     VALID_DATE_FORMATS = ("%Y-%m-%d", "%Y-%m-%dT%H:%M:%SZ")
     VALID_RUN_TYPES = ("full", "daily")
-    VALID_STEPS = ("extract", "transform", "load", "embeddings-create", "embeddings-load")
+    # NOTE: terminal steps like 'exit-ok', 'exit-error', and 'end' are valid *output*
+    # 'next-step' values (see NextStep in format_input.py) but are not valid input
+    # steps, so they are intentionally omitted here.
+    VALID_STEPS = (
+        "extract",
+        "transform",
+        "load",
+        "enrichment",
+        "embeddings-create",
+        "embeddings-load",
+        "fulltexts-harvest",
+        "fulltexts-load",
+        "finalize",
+    )
     SKIP_EMBEDDINGS_SOURCES = ("alma", "gisogm")
     SOURCE_HARVESTER: ClassVar[dict[str, list[str]]] = {
         "geo": list(GIS_SOURCES),
         "browsertrix": ["mitlibwebsite", "libguides"],
         "oai": ["aspace", "digitalcollections", "dspace", "researchdatabases"],
     }
+    VALID_FULLTEXTS_SOURCES = ("dspace",)
 
     def __getattr__(self, name: str) -> Any:  # noqa: ANN401
         """Provide dot notation access to configurations and env vars on this class."""
@@ -112,7 +126,7 @@ def configure_logger(
     """Configure application via passed application root logger.
 
     If verbose=True, 3rd party libraries can be quite chatty.  For convenience, they
-    can be set to WARNING level by either passing a comma seperated list of logger
+    can be set to WARNING level by either passing a comma separated list of logger
     names to 'warning_only_loggers' or by setting the env var WARNING_ONLY_LOGGERS.
     """
     if verbose:

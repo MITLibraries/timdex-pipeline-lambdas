@@ -443,3 +443,44 @@ def test_generate_embeddings_load_command(run_id):
             ],
         }
     }
+
+
+def test_generate_fulltexts_harvest_command(run_id):
+    event = {
+        "next-step": "fulltexts-harvest",
+        "run-date": "2022-01-02",
+        "run-type": "daily",
+        "source": "dspace",
+        "run-id": run_id,
+    }
+    input_payload = InputPayload.from_event(event)
+    result = commands.generate_fulltexts_harvest_command(input_payload)
+
+    assert result == {
+        "harvester-type": "dspace-fulltext-harvester",
+        "harvest": {"command": ["--verbose", "harvest", f"--run-id={run_id}"]},
+    }
+
+
+def test_generate_fulltexts_load_command(run_id):
+    event = {
+        "next-step": "fulltexts-load",
+        "run-date": "2022-01-02",
+        "run-type": "daily",
+        "source": "dspace",
+        "run-id": run_id,
+    }
+    input_payload = InputPayload.from_event(event)
+    result = commands.generate_fulltexts_load_command(input_payload)
+
+    assert result == {
+        "load": {
+            "bulk-update-fulltexts-command": [
+                "--verbose",
+                "bulk-update-fulltexts",
+                "--source=dspace",
+                f"--run-id={run_id}",
+                "s3://test-timdex-bucket/dataset",
+            ],
+        }
+    }
