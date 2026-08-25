@@ -310,6 +310,8 @@ def handle_parallel_enrichments(
     fully managed by that branch.  Once the branch completes, the results are shared,
     and any 'next-step' values used within that branch are dropped / ignored.
     """
+    result.next_step = "finalize"
+
     # default enrichment shape
     enrichments: dict = {
         "skip": False,
