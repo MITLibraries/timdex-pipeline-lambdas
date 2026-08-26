@@ -237,3 +237,33 @@ def generate_embeddings_load_command(input_payload: "InputPayload") -> dict:
             ],
         }
     }
+
+
+def generate_fulltexts_harvest_command(input_payload: "InputPayload") -> dict:
+    """Generate ECS task command for dspace-fulltext-harvester."""
+    logger.info("Currently hardcoded to always select 'dspace-fulltext-harvester'.")
+    return {
+        "harvester-type": "dspace-fulltext-harvester",
+        "harvest": {
+            "command": [
+                "--verbose",
+                "harvest",
+                f"--run-id={input_payload.run_id}",
+            ],
+        },
+    }
+
+
+def generate_fulltexts_load_command(input_payload: "InputPayload") -> dict:
+    """Generate TIM command to update documents with fulltexts."""
+    return {
+        "load": {
+            "bulk-update-fulltexts-command": [
+                "--verbose",
+                "bulk-update-fulltexts",
+                f"--source={input_payload.source}",
+                f"--run-id={input_payload.run_id}",
+                CONFIG.s3_timdex_dataset_location,
+            ],
+        }
+    }

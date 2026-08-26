@@ -3,11 +3,12 @@
 import json
 import logging
 import uuid
+from copy import deepcopy
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
 from typing import Literal
 
-from timdex_dataset_api.dataset import TIMDEXDataset  # type: ignore[import-untyped]
+from timdex_dataset_api.dataset import TIMDEXDataset
 
 from lambdas import alma_prep, commands, errors, helpers
 from lambdas.config import Config, configure_logger
@@ -20,12 +21,25 @@ type NextStep = Literal[
     "extract",
     "transform",
     "load",
+    "enrichment",
     "embeddings-create",
     "embeddings-load",
+    "fulltexts-harvest",
+    "fulltexts-load",
     "exit-ok",
     "exit-error",
+    "finalize",
     "end",
 ]
+
+
+ENRICHMENT_STEPS = {
+    "enrichment",
+    "embeddings-create",
+    "embeddings-load",
+    "fulltexts-harvest",
+    "fulltexts-load",
+}
 
 
 @dataclass
@@ -149,8 +163,11 @@ class ResultPayload:
     extract: dict | None = None
     transform: dict | None = None
     load: dict | None = None
+    enrichments: dict | None = None
     embeddings: dict | None = None
-    message: str | None = None
+    fulltexts: dict | None = None
+    metrics: dict | None = None
+    message: str | list | None = None
 
     @classmethod
     def from_input_payload(cls, input_payload: "InputPayload") -> "ResultPayload":
@@ -161,6 +178,7 @@ class ResultPayload:
             run_id=input_payload.run_id,
             source=input_payload.source,
             verbose=input_payload.verbose,
+            enrichments=deepcopy(input_payload.raw.get("enrichments")),
         )
 
     def to_dict(self) -> dict:
@@ -175,16 +193,22 @@ def lambda_handler(event: dict, _context: dict) -> dict:
     # prepare result
     result = ResultPayload.from_input_payload(input_payload)
 
+    # primary record ETL
     if input_payload.next_step == "extract":
         result = handle_extract(input_payload, result)
     elif input_payload.next_step == "transform":
         result = handle_transform(input_payload, result)
     elif input_payload.next_step == "load":
         result = handle_load(input_payload, result)
-    elif input_payload.next_step == "embeddings-create":
-        result = handle_embeddings_create(input_payload, result)
-    elif input_payload.next_step == "embeddings-load":
-        result = handle_embeddings_load(input_payload, result)
+
+    # enrichments
+    elif input_payload.next_step in ENRICHMENT_STEPS:
+        result = handle_enrichment_steps(input_payload, result)
+
+    # report and finalize
+    elif input_payload.next_step == "finalize":
+        result = handle_finalize(input_payload, result)
+
     else:
         raise ValueError(f"'next-step' not supported: '{input_payload.next_step}'")
 
@@ -248,7 +272,7 @@ def handle_transform(input_payload: InputPayload, result: ResultPayload) -> Resu
 
 
 def handle_load(input_payload: InputPayload, result: ResultPayload) -> ResultPayload:
-    result.next_step = "embeddings-create"
+    result.next_step = "enrichment"
     if not helpers.dataset_records_exist_for_run(input_payload.run_id):
         result.next_step = "exit-ok"
         message = (
@@ -259,6 +283,49 @@ def handle_load(input_payload: InputPayload, result: ResultPayload) -> ResultPay
         result.message = message
         return result
     result.load = commands.generate_load_commands(input_payload)
+    return result
+
+
+def handle_enrichment_steps(
+    input_payload: InputPayload, result: ResultPayload
+) -> ResultPayload:
+    """Route an enrichment step to its handler."""
+    handlers = {
+        "enrichment": handle_parallel_enrichments,
+        "embeddings-create": handle_embeddings_create,
+        "embeddings-load": handle_embeddings_load,
+        "fulltexts-harvest": handle_fulltexts_harvest,
+        "fulltexts-load": handle_fulltexts_load,
+    }
+    return handlers[input_payload.next_step](input_payload, result)
+
+
+def handle_parallel_enrichments(
+    input_payload: InputPayload, result: ResultPayload
+) -> ResultPayload:
+    """Prepare the enrichments payload for parallel enrichment work.
+
+    Enrichments are performed via a 'Parallel' state in the StepFunction.  As such, the
+    'next-step' for each branch in this parallel applies only to that branch, and is
+    fully managed by that branch.  Once the branch completes, the results are shared,
+    and any 'next-step' values used within that branch are dropped / ignored.
+    """
+    result.next_step = "finalize"
+
+    # default enrichment shape
+    enrichments: dict = {
+        "skip": False,
+        "embeddings": {"skip": False},
+        "fulltexts": {"skip": False},
+    }
+
+    # overlay caller-supplied enrichment options, ensuring all branches have a "skip" key
+    if caller_options := input_payload.raw.get("enrichments"):
+        enrichments.update(deepcopy(caller_options))
+        for branch in ("embeddings", "fulltexts"):
+            enrichments[branch].setdefault("skip", False)
+
+    result.enrichments = enrichments
     return result
 
 
@@ -328,7 +395,11 @@ def handle_embeddings_load(
 
     We do not create embeddings for all sources.  Those we skip are configured in
     CONFIG.SKIP_EMBEDDINGS_SOURCES.
+
+    Note that this is the terminal state in an enrichment branch, which is why we have
+    next-step=end.
     """
+    # This 'end' next-step refers to only the parallel enrichments branch
     result.next_step = "end"
 
     if input_payload.source in CONFIG.SKIP_EMBEDDINGS_SOURCES:
@@ -357,4 +428,89 @@ def handle_embeddings_load(
     )
 
     result.embeddings = commands.generate_embeddings_load_command(input_payload)
+    return result
+
+
+def handle_fulltexts_harvest(
+    input_payload: InputPayload, result: ResultPayload
+) -> ResultPayload:
+    """Analyze ETL run and prepare CLI commands for fulltext harvesters.
+
+    At this time, only a single fulltext harvester exists for the 'dspace' source.
+    """
+    result.next_step = "fulltexts-load"
+
+    if input_payload.source not in CONFIG.VALID_FULLTEXTS_SOURCES:
+        result.next_step = "exit-ok"
+        result.message = (
+            f"Not currently harvesting fulltexts for source '{input_payload.source}'"
+        )
+        return result
+
+    # retrieve records count for run
+    td = TIMDEXDataset(location=CONFIG.s3_timdex_dataset_location)
+    record_count = td.conn.query(f"""
+        select count(*)
+        from metadata.records
+        where run_id = '{input_payload.run_id}'
+        and action in ('index')
+        """).fetchone()[0]
+
+    # exit early if no records to harvest fulltext for
+    if record_count == 0:
+        result.next_step = "exit-ok"
+        result.message = (
+            f"No records found for run '{input_payload.run_id}', no fulltexts to harvest."
+        )
+        return result
+
+    result.fulltexts = commands.generate_fulltexts_harvest_command(input_payload)
+
+    return result
+
+
+def handle_fulltexts_load(
+    input_payload: InputPayload, result: ResultPayload
+) -> ResultPayload:
+    """Load harvested fulltexts into Opensearch.
+
+    Note that this is the terminal state in an enrichment branch, which is why we have
+    next-step=end.
+    """
+    result.next_step = "end"
+
+    # retrieve fulltexts count for run
+    td = TIMDEXDataset(location=CONFIG.s3_timdex_dataset_location)
+    fulltexts_count = td.conn.query(f"""
+            select count(*)
+            from metadata.current_run_fulltexts
+            where run_id = '{input_payload.run_id}'
+        """).fetchone()[0]
+
+    # exit early if no fulltexts to load
+    if fulltexts_count == 0:
+        result.next_step = "exit-ok"
+        result.message = f"No fulltexts found for run '{input_payload.run_id}'."
+        return result
+
+    logger.info(
+        f"Preparing TIM command to update {fulltexts_count} documents with fulltexts."
+    )
+
+    result.fulltexts = commands.generate_fulltexts_load_command(input_payload)
+    return result
+
+
+def handle_finalize(input_payload: InputPayload, result: ResultPayload) -> ResultPayload:
+    result.next_step = "end"
+
+    # retrieve and log ETL run metrics
+    run_metrics = helpers.get_run_metrics(input_payload.run_id)
+    logger.info(f"Run metrics: {json.dumps(run_metrics)}")
+
+    # WIP: next pass will publish these metrics as AWS Metrics right here
+
+    # attach metrics to output
+    result.metrics = run_metrics
+
     return result

@@ -1,6 +1,10 @@
 # ruff: noqa: PT011
 
+from unittest.mock import MagicMock, patch
+
+import pandas as pd
 import pytest
+from duckdb import CatalogException
 from freezegun import freeze_time
 
 from lambdas import errors, helpers
@@ -256,3 +260,69 @@ def test_list_s3_files_by_prefix(s3_client):
 def test_list_s3_files_by_prefix_no_files_raises_error():
     with pytest.raises(errors.NoFilesError):
         helpers.list_s3_files_by_prefix("test-timdex-bucket", "the/right-prefix")
+
+
+def _query_result(count: int) -> MagicMock:
+    """Mock a duckdb query result that returns a single count."""
+    result = MagicMock()
+    result.fetchone.return_value = (count,)
+    return result
+
+
+def _actions_query_result(actions: dict[str, int]) -> MagicMock:
+    """Mock a duckdb query result that returns action counts."""
+    result = MagicMock()
+    result.to_df.return_value = pd.DataFrame(
+        {"action": list(actions), "action_count": list(actions.values())}
+    )
+    return result
+
+
+def test_get_run_metrics_returns_records_and_enrichment_counts(run_id):
+    with patch("lambdas.helpers.TIMDEXDataset") as mock_dataset:
+        mock_dataset.return_value.conn.query.side_effect = [
+            _query_result(10),
+            _actions_query_result({"index": 8, "delete": 2}),
+            _query_result(6),
+            _query_result(4),
+        ]
+        metrics = helpers.get_run_metrics(run_id)
+
+    assert metrics == {
+        "records": {"count": 10, "actions": {"index": 8, "delete": 2}},
+        "embeddings": {"count": 6},
+        "fulltexts": {"count": 4},
+    }
+
+
+def test_get_run_metrics_with_no_records_returns_empty_actions(run_id):
+    with patch("lambdas.helpers.TIMDEXDataset") as mock_dataset:
+        mock_dataset.return_value.conn.query.side_effect = [
+            _query_result(0),
+            _query_result(0),
+            _query_result(0),
+        ]
+        metrics = helpers.get_run_metrics(run_id)
+
+    assert metrics == {
+        "records": {"count": 0, "actions": {}},
+        "embeddings": {"count": 0},
+        "fulltexts": {"count": 0},
+    }
+
+
+def test_get_run_metrics_missing_enrichment_views_count_as_zero(run_id):
+    with patch("lambdas.helpers.TIMDEXDataset") as mock_dataset:
+        mock_dataset.return_value.conn.query.side_effect = [
+            _query_result(5),
+            _actions_query_result({"index": 5}),
+            CatalogException("embeddings view missing"),
+            CatalogException("fulltexts view missing"),
+        ]
+        metrics = helpers.get_run_metrics(run_id)
+
+    assert metrics == {
+        "records": {"count": 5, "actions": {"index": 5}},
+        "embeddings": {"count": 0},
+        "fulltexts": {"count": 0},
+    }

@@ -339,7 +339,7 @@ def test_lambda_handler_with_next_step_load_files_present(s3_client):
         response = format_input.lambda_handler(event, {})
 
     assert response == {
-        "next-step": "embeddings-create",
+        "next-step": "enrichment",
         "run-date": "2022-01-02",
         "run-type": "daily",
         "run-id": "run-abc-123",
@@ -389,6 +389,45 @@ def test_lambda_handler_with_next_step_load_no_files_present():
     }
 
 
+def test_parallel_enrichments_step_normalizes_enrichments():
+    event = {
+        "run-date": "2022-01-02",
+        "run-type": "daily",
+        "next-step": "enrichment",
+        "source": "dspace",
+        "run-id": "run-abc-123",
+        "enrichments": {"fulltexts": {"skip": True}},
+    }
+
+    response = format_input.lambda_handler(event, {})
+
+    assert response["enrichments"] == {
+        "skip": False,
+        "embeddings": {"skip": False},
+        "fulltexts": {"skip": True},
+    }
+
+
+def test_parallel_enrichments_step_defaults_missing_branch_skip_key():
+    """Enrichment branches passed without "skip" are defaulted to skip=False."""
+    event = {
+        "run-date": "2022-01-02",
+        "run-type": "daily",
+        "next-step": "enrichment",
+        "source": "dspace",
+        "run-id": "run-abc-123",
+        "enrichments": {"embeddings": {"foo": "bar"}},
+    }
+
+    response = format_input.lambda_handler(event, {})
+
+    assert response["enrichments"] == {
+        "skip": False,
+        "embeddings": {"foo": "bar", "skip": False},
+        "fulltexts": {"skip": False},
+    }
+
+
 def test_lambda_handler_with_next_step_embeddings_create_skip_source():
     """Source in SKIP_EMBEDDINGS_SOURCES exits early with message."""
     event = {
@@ -423,3 +462,151 @@ def test_lambda_handler_with_next_step_embeddings_load_skip_source():
 
     assert response["next-step"] == "exit-ok"
     assert response["message"] == "Not currently indexing embeddings for source 'gisogm'"
+
+
+def test_enrichment_options_echoed_before_parallel_enrichments_step():
+    """Caller-supplied enrichment options pass through all steps untouched.
+
+    The StepFunction per-branch skip Choices (e.g. '$.enrichments.fulltexts.skip')
+    are evaluated after the branch prep lambda, so the options must be echoed by
+    every step to remain visible to the state machine.
+    """
+    event = {
+        "run-date": "2022-01-02",
+        "run-type": "daily",
+        "next-step": "fulltexts-harvest",
+        "source": "alma",
+        "run-id": "run-abc-123",
+        "enrichments": {"fulltexts": {"skip": True}},
+    }
+
+    response = format_input.lambda_handler(event, {})
+
+    assert response["enrichments"] == {"fulltexts": {"skip": True}}
+
+
+def test_lambda_handler_with_next_step_fulltexts_harvest_skip_source():
+    """Source not in VALID_FULLTEXTS_SOURCES exits early with message."""
+    event = {
+        "run-date": "2022-01-02",
+        "run-type": "daily",
+        "next-step": "fulltexts-harvest",
+        "source": "alma",
+        "run-id": "run-abc-123",
+    }
+
+    response = format_input.lambda_handler(event, {})
+
+    assert response["next-step"] == "exit-ok"
+    assert response["message"] == "Not currently harvesting fulltexts for source 'alma'"
+
+
+def test_lambda_handler_with_next_step_fulltexts_harvest_no_records(run_id):
+    """No indexed records for the run exits early with message."""
+    event = {
+        "run-date": "2022-01-02",
+        "run-type": "daily",
+        "next-step": "fulltexts-harvest",
+        "source": "dspace",
+        "run-id": run_id,
+    }
+
+    with patch("lambdas.format_input.TIMDEXDataset") as mock_dataset:
+        mock_dataset.return_value.conn.query.return_value.fetchone.return_value = (0,)
+        response = format_input.lambda_handler(event, {})
+
+    assert response["next-step"] == "exit-ok"
+    assert response["message"] == (
+        f"No records found for run '{run_id}', no fulltexts to harvest."
+    )
+
+
+def test_lambda_handler_with_next_step_fulltexts_harvest_records_present(run_id):
+    """Indexed records present yields fulltexts harvest command."""
+    event = {
+        "run-date": "2022-01-02",
+        "run-type": "daily",
+        "next-step": "fulltexts-harvest",
+        "source": "dspace",
+        "run-id": run_id,
+    }
+
+    with patch("lambdas.format_input.TIMDEXDataset") as mock_dataset:
+        mock_dataset.return_value.conn.query.return_value.fetchone.return_value = (42,)
+        response = format_input.lambda_handler(event, {})
+
+    assert response["next-step"] == "fulltexts-load"
+    assert response["fulltexts"] == {
+        "harvester-type": "dspace-fulltext-harvester",
+        "harvest": {"command": ["--verbose", "harvest", f"--run-id={run_id}"]},
+    }
+
+
+def test_lambda_handler_with_next_step_fulltexts_load_no_fulltexts(run_id):
+    """No harvested fulltexts exits early with message."""
+    event = {
+        "run-date": "2022-01-02",
+        "run-type": "daily",
+        "next-step": "fulltexts-load",
+        "source": "dspace",
+        "run-id": run_id,
+    }
+
+    with patch("lambdas.format_input.TIMDEXDataset") as mock_dataset:
+        mock_dataset.return_value.conn.query.return_value.fetchone.return_value = (0,)
+        response = format_input.lambda_handler(event, {})
+
+    assert response["next-step"] == "exit-ok"
+    assert response["message"] == f"No fulltexts found for run '{run_id}'."
+
+
+def test_lambda_handler_with_next_step_fulltexts_load_fulltexts_present(run_id):
+    """Harvested fulltexts yields bulk-update-fulltexts command."""
+    event = {
+        "run-date": "2022-01-02",
+        "run-type": "daily",
+        "next-step": "fulltexts-load",
+        "source": "dspace",
+        "run-id": run_id,
+    }
+
+    with patch("lambdas.format_input.TIMDEXDataset") as mock_dataset:
+        mock_dataset.return_value.conn.query.return_value.fetchone.return_value = (42,)
+        response = format_input.lambda_handler(event, {})
+
+    assert response["next-step"] == "end"
+    assert response["fulltexts"] == {
+        "load": {
+            "bulk-update-fulltexts-command": [
+                "--verbose",
+                "bulk-update-fulltexts",
+                "--source=dspace",
+                f"--run-id={run_id}",
+                "s3://test-timdex-bucket/dataset",
+            ],
+        }
+    }
+
+
+def test_lambda_handler_with_next_step_finalize_attaches_metrics(run_id):
+    """Finalize ends the run and attaches run metrics to the output."""
+    run_metrics = {
+        "records": {"count": 42, "actions": {"index": 42}},
+        "embeddings": {"count": 42},
+        "fulltexts": {"count": 10},
+    }
+    event = {
+        "run-date": "2022-01-02",
+        "run-type": "daily",
+        "next-step": "finalize",
+        "source": "dspace",
+        "run-id": run_id,
+    }
+
+    with patch(
+        "lambdas.helpers.get_run_metrics", return_value=run_metrics
+    ) as _mocked_metrics:
+        response = format_input.lambda_handler(event, {})
+
+    assert response["next-step"] == "end"
+    assert response["metrics"] == run_metrics
