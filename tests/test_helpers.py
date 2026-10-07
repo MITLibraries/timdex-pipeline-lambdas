@@ -73,6 +73,20 @@ def test_validate_input_with_missing_harvest_fields_raises_error():
     )
 
 
+def test_validate_input_with_invalid_oai_request_header_mixins_raises_error():
+    event = {
+        "next-step": "extract",
+        "run-date": "2022-01-02",
+        "run-type": "daily",
+        "source": "testsource",
+        "oai-pmh-host": "https://example.com/oai",
+        "oai-metadata-format": "oai_dc",
+        "oai-request-header-mixins": '{"message:"i am poorly formatted}',
+    }
+    with pytest.raises(ValueError, match="must be a JSON object or JSON object string"):
+        InputPayload.validate_input(event)
+
+
 def test_validate_input_with_all_required_fields_returns_none():
     event = {
         "next-step": "transform",
@@ -128,6 +142,21 @@ def test_validate_input_mitlibwebsite_daily_missing_previous_urls_raises_error()
         "Field 'btrix-previous-sitemap-urls-file' required when 'run-type=daily'"
         in str(error.value)
     )
+
+
+def test_validate_input_with_invalid_btrix_args_json_raises_error():
+    event = {
+        "next-step": "extract",
+        "run-date": "2022-01-02",
+        "run-type": "full",
+        "source": "mitlibwebsite",
+        "btrix-config-yaml-file": "s3://bucket/config.yaml",
+        "btrix-sitemaps": ["https://example.com/sitemap.xml"],
+        "btrix-sitemap-urls-output-file": "s3://bucket/output.txt",
+        "btrix-args-json": "not json",
+    }
+    with pytest.raises(ValueError, match="must be a JSON object or JSON object string"):
+        InputPayload.validate_input(event)
 
 
 def test_validate_input_mitlibwebsite_full_without_previous_urls_returns_none():

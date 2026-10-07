@@ -70,6 +70,32 @@ def test_generate_extract_command_all_input_fields():
     }
 
 
+def test_generate_extract_command_oai_request_header_mixins():
+    event = {
+        "run-date": "2022-01-02T12:13:14Z",
+        "run-type": "daily",
+        "next-step": "extract",
+        "source": "researchdatabases",
+        "oai-pmh-host": "https://example.com/oai",
+        "oai-metadata-format": "oai_dc",
+        "oai-request-header-mixins": {"X-Some-Header": "value"},
+    }
+    input_payload = InputPayload.from_event(event)
+    assert commands.generate_extract_command(input_payload) == {
+        "extract-command": [
+            "--host=https://example.com/oai",
+            (
+                "--output-file=s3://test-timdex-bucket/researchdatabases/"
+                "researchdatabases-2022-01-02-daily-extracted-records-to-index.xml"
+            ),
+            '--request-header-mixins={"X-Some-Header": "value"}',
+            "harvest",
+            "--metadata-format=oai_dc",
+            "--from-date=2022-01-01",
+        ]
+    }
+
+
 def test_generate_extract_command_geoharvester():
     event = {
         "run-date": "2022-01-02T12:13:14Z",
