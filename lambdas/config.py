@@ -41,9 +41,10 @@ class Config:
         "btrix-sitemaps",
         "btrix-sitemap-urls-output-file",
     )
+    REQUIRED_PATCH_TRANSFORM_FIELDS = ("subset-record-ids", "subset-record-ids-csv")
     SOURCE_EXCLUSION_LISTS: ClassVar[dict[str, str]] = {}
     VALID_DATE_FORMATS = ("%Y-%m-%d", "%Y-%m-%dT%H:%M:%SZ")
-    VALID_RUN_TYPES = ("full", "daily")
+    VALID_RUN_TYPES = ("full", "daily", "patch")
     # NOTE: terminal steps like 'exit-ok', 'exit-error', and 'end' are valid *output*
     # 'next-step' values (see NextStep in format_input.py) but are not valid input
     # steps, so they are intentionally omitted here.

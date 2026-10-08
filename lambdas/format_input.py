@@ -45,7 +45,7 @@ ENRICHMENT_STEPS = {
 @dataclass
 class InputPayload:
     run_date: str
-    run_type: Literal["daily", "full"]
+    run_type: Literal["daily", "full", "patch"]
     source: str
     next_step: NextStep
     run_id: str
@@ -128,6 +128,26 @@ class InputPayload:
                     f"with harvest step. Missing fields: {list(missing_harvest_fields)}"
                 )
                 raise ValueError(message)
+
+        # If next step is transform step and run type is patch
+        # required transform fields are present
+        if input_data["next-step"] == "transform":
+            missing_transform_fields = None
+
+            if input_data["run-type"] == "patch":
+                missing_transform_fields = set(
+                    CONFIG.REQUIRED_BTRIX_HARVEST_FIELDS
+                ).difference(set(input_data.keys()))
+
+            if len(missing_transform_fields) == len(
+                CONFIG.REQUIRED_PATCH_TRANSFORM_FIELDS
+            ):
+                message = (
+                    "Input must include one of the required transform fields when starting "
+                    "with patch transform step. "
+                    f"Missing fields: {list(missing_transform_fields)}"
+                )
+                raise (ValueError(message))
 
     @staticmethod
     def validate_json_object_field(input_data: dict, field: str) -> None:
@@ -252,41 +272,68 @@ def handle_extract(input_payload: InputPayload, result: ResultPayload) -> Result
 
 def handle_transform(input_payload: InputPayload, result: ResultPayload) -> ResultPayload:
     result.next_step = "load"
-    try:
-        if input_payload.source == "alma":
-            alma_prep.prepare_alma_export_files(input_payload)
-        extract_output_files = helpers.list_s3_files_by_prefix(
-            CONFIG.timdex_bucket,
-            helpers.generate_step_output_prefix(
-                input_payload,
-                "extract",
-            ),
-        )
-    except errors.NoFilesError:
-        if input_payload.source == "alma" or input_payload.run_type == "full":
-            result.next_step = "exit-error"
-            message = (
-                "There were no transformed files present in the TIMDEX S3 bucket "
-                "for the provided date and source, something likely went wrong."
+
+    if input_payload.run_type in ["full", "daily"]:
+        try:
+            if input_payload.source == "alma":
+                alma_prep.prepare_alma_export_files(input_payload)
+            extract_output_files = helpers.list_s3_files_by_prefix(
+                CONFIG.timdex_bucket,
+                helpers.generate_step_output_prefix(
+                    input_payload,
+                    "extract",
+                ),
             )
-            result.message = message
-            logger.error(message)  # noqa: TRY400
-        elif input_payload.run_type == "daily":
+        except errors.NoFilesError:
+            if input_payload.source == "alma" or input_payload.run_type == "full":
+                result.next_step = "exit-error"
+                message = (
+                    "There were no transformed files present in the TIMDEX S3 bucket "
+                    "for the provided date and source, something likely went wrong."
+                )
+                result.message = message
+                logger.error(message)  # noqa: TRY400
+            elif input_payload.run_type == "daily":
+                result.next_step = "exit-ok"
+                message = "There were no daily new/updated/deleted records to harvest."
+                logger.info(message)
+                result.message = message
+            return result
+        logger.info(
+            "%s extracted files found in TIMDEX S3 bucket for date '%s' and source '%s'",
+            len(extract_output_files),
+            input_payload.run_date,
+            input_payload.source,
+        )
+
+        result.transform = commands.generate_transform_commands(
+            input_payload,
+            extract_output_files,
+        )
+
+    # 'patch' runs
+    else:
+        # retrieve count of current records that match the filter criteria
+        td = TIMDEXDataset(location=CONFIG.s3_timdex_dataset_location)
+        # FIXME: Accept filter criteria # noqa: FIX001, TD001
+        record_count = td.conn.query(f"""
+            select count(*)
+            from metadata.current_records
+            where run_id = '{input_payload.run_id}'
+            and action in ('index')
+            """).fetchone()[0]
+
+        # exit early if no records to patch based on filters
+        if record_count == 0:
             result.next_step = "exit-ok"
-            message = "There were no daily new/updated/deleted records to harvest."
-            logger.info(message)
-            result.message = message
-        return result
-    logger.info(
-        "%s extracted files found in TIMDEX S3 bucket for date '%s' and source '%s'",
-        len(extract_output_files),
-        input_payload.run_date,
-        input_payload.source,
-    )
-    result.transform = commands.generate_transform_commands(
-        input_payload,
-        extract_output_files,
-    )
+            result.message = (
+                f"No records found for source '{input_payload.source}' "
+                "that match filters, no records to patch"
+            )
+            return result
+
+        result.transform = commands.generate_transform_commands(input_payload)
+
     return result
 
 
