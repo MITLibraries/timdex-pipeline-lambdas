@@ -45,7 +45,7 @@ ENRICHMENT_STEPS = {
 @dataclass
 class InputPayload:
     run_date: str
-    run_type: Literal["daily", "full"]
+    run_type: Literal["daily", "full", "patch"]
     source: str
     next_step: NextStep
     run_id: str
@@ -129,6 +129,28 @@ class InputPayload:
                 )
                 raise ValueError(message)
 
+        # If next step is transform step and run type is patch
+        # required patch transform fields are present
+        if input_data["next-step"] == "transform":
+            missing_transform_fields = None
+
+            if input_data["run-type"] == "patch":
+                if "patch" not in input_data:
+                    raise ValueError("Field 'patch' required when 'run-type=patch'")
+
+                missing_transform_fields = set(
+                    CONFIG.REQUIRED_PATCH_TRANSFORM_FIELDS
+                ).difference(set(input_data["patch"].keys()))
+
+                if missing_transform_fields:
+                    message = (
+                        "Input must include all required patch fields when "
+                        "starting with patch transform step. Missing fields: "
+                        f"{list(missing_transform_fields)}"
+                    )
+                    raise ValueError(message)
+                InputPayload.validate_json_object_field(input_data, "patch")
+
     @staticmethod
     def validate_json_object_field(input_data: dict, field: str) -> None:
         """Validate that an optional field is, or parses to, a JSON object."""
@@ -184,6 +206,7 @@ class ResultPayload:
     load: dict | None = None
     enrichments: dict | None = None
     embeddings: dict | None = None
+    patch: dict | None = None
     fulltexts: dict | None = None
     metrics: dict | None = None
     message: str | list | None = None
@@ -198,6 +221,7 @@ class ResultPayload:
             source=input_payload.source,
             verbose=input_payload.verbose,
             enrichments=deepcopy(input_payload.raw.get("enrichments")),
+            patch=deepcopy(input_payload.raw.get("patch")),
         )
 
     def to_dict(self) -> dict:
@@ -252,41 +276,76 @@ def handle_extract(input_payload: InputPayload, result: ResultPayload) -> Result
 
 def handle_transform(input_payload: InputPayload, result: ResultPayload) -> ResultPayload:
     result.next_step = "load"
-    try:
-        if input_payload.source == "alma":
-            alma_prep.prepare_alma_export_files(input_payload)
-        extract_output_files = helpers.list_s3_files_by_prefix(
-            CONFIG.timdex_bucket,
-            helpers.generate_step_output_prefix(
-                input_payload,
-                "extract",
-            ),
-        )
-    except errors.NoFilesError:
-        if input_payload.source == "alma" or input_payload.run_type == "full":
-            result.next_step = "exit-error"
-            message = (
-                "There were no transformed files present in the TIMDEX S3 bucket "
-                "for the provided date and source, something likely went wrong."
+
+    if input_payload.run_type in ["full", "daily"]:
+        try:
+            if input_payload.source == "alma":
+                alma_prep.prepare_alma_export_files(input_payload)
+            extract_output_files = helpers.list_s3_files_by_prefix(
+                CONFIG.timdex_bucket,
+                helpers.generate_step_output_prefix(
+                    input_payload,
+                    "extract",
+                ),
             )
-            result.message = message
-            logger.error(message)  # noqa: TRY400
-        elif input_payload.run_type == "daily":
+        except errors.NoFilesError:
+            if input_payload.source == "alma" or input_payload.run_type == "full":
+                result.next_step = "exit-error"
+                message = (
+                    "There were no transformed files present in the TIMDEX S3 bucket "
+                    "for the provided date and source, something likely went wrong."
+                )
+                result.message = message
+                logger.error(message)  # noqa: TRY400
+            elif input_payload.run_type == "daily":
+                result.next_step = "exit-ok"
+                message = "There were no daily new/updated/deleted records to harvest."
+                logger.info(message)
+                result.message = message
+            return result
+        logger.info(
+            "%s extracted files found in TIMDEX S3 bucket for date '%s' and source '%s'",
+            len(extract_output_files),
+            input_payload.run_date,
+            input_payload.source,
+        )
+        result.transform = commands.generate_transform_commands(
+            input_payload,
+            extract_output_files,
+        )
+    elif input_payload.run_type == "patch":
+        # retrieve count of current records that match the filter criteria
+        record_count = 0
+        td = TIMDEXDataset(location=CONFIG.s3_timdex_dataset_location)
+
+        if input_payload.raw["patch"]["subset-type"] == "current-records":
+            record_count = td.conn.query(f"""
+                select count(*)
+                from metadata.current_records
+                where source = '{input_payload.source}'
+                and action in ('index')
+                """).fetchone()[0]
+        else:
+            raise ValueError(
+                "Cannot generate transform command for unsupported "
+                f"patch 'sub-type': '{input_payload.raw['patch']['subset-type']}'"
+            )
+
+        # exit early if no records to patch based on filters
+        if record_count == 0:
             result.next_step = "exit-ok"
-            message = "There were no daily new/updated/deleted records to harvest."
-            logger.info(message)
-            result.message = message
-        return result
-    logger.info(
-        "%s extracted files found in TIMDEX S3 bucket for date '%s' and source '%s'",
-        len(extract_output_files),
-        input_payload.run_date,
-        input_payload.source,
-    )
-    result.transform = commands.generate_transform_commands(
-        input_payload,
-        extract_output_files,
-    )
+            result.message = (
+                f"No current records found for source '{input_payload.source}', "
+                "no records to patch"
+            )
+            return result
+        result.transform = commands.generate_transform_commands(input_payload)
+    else:
+        raise ValueError(
+            "Cannot generate transform command for unsupported 'run-type': "
+            f"'{input_payload.run_type}'"
+        )
+
     return result
 
 

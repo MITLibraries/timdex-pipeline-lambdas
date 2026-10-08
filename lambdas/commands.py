@@ -146,25 +146,47 @@ def _to_json_string(value: dict | str) -> str:
 
 
 def generate_transform_commands(
-    input_payload: "InputPayload",
-    extract_output_files: list[str],
+    input_payload: "InputPayload", extract_output_files: list[str] | None = None
 ) -> dict[str, list[dict]]:
-    """Generate task run command for TIMDEX transform."""
-    files_to_transform: list[dict] = []
-    for extract_output_file in extract_output_files:
+    """Generate task run commands for TIMDEX transform."""
+    transform_commands: list[dict] = []
+
+    if input_payload.run_type not in ["full", "daily", "patch"]:
+        raise ValueError(
+            "Cannot generate transform command for unsupported 'run-type': "
+            f"'{input_payload.run_type}'"
+        )
+
+    if input_payload.run_type in ["full", "daily"]:
+        if not extract_output_files:
+            raise ValueError(
+                "Cannot generate transform command without list of extract files "
+                f"for 'run-type': '{input_payload.run_type}'"
+            )
+        for extract_output_file in extract_output_files:
+            transform_command = [
+                f"--input-file=s3://{CONFIG.timdex_bucket}/{extract_output_file}",
+                f"--output-dataset={CONFIG.s3_timdex_dataset_location}",
+                f"--source={input_payload.source}",
+                f"--run-id={input_payload.run_id}",
+                f"--run-timestamp={input_payload.run_timestamp}",
+            ]
+            if input_payload.source in CONFIG.source_exclusion_lists:
+                transform_command.append(
+                    f"--exclusion-list-path={CONFIG.source_exclusion_lists[input_payload.source]}"
+                )
+            transform_commands.append({"transform-command": transform_command})
+    else:
         transform_command = [
-            f"--input-file=s3://{CONFIG.timdex_bucket}/{extract_output_file}",
-            f"--output-location={CONFIG.s3_timdex_dataset_location}",
+            f"--input-dataset={CONFIG.s3_timdex_dataset_location}",
+            f"--output-dataset={CONFIG.s3_timdex_dataset_location}",
             f"--source={input_payload.source}",
             f"--run-id={input_payload.run_id}",
             f"--run-timestamp={input_payload.run_timestamp}",
         ]
-        if input_payload.source in CONFIG.source_exclusion_lists:
-            transform_command.append(
-                f"--exclusion-list-path={CONFIG.source_exclusion_lists[input_payload.source]}"
-            )
-        files_to_transform.append({"transform-command": transform_command})
-    return {"files-to-transform": files_to_transform}
+        transform_commands.append({"transform-command": transform_command})
+
+    return {"transform-commands": transform_commands}
 
 
 def generate_load_commands(input_payload: "InputPayload") -> dict:

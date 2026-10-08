@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 import pytest
 from freezegun import freeze_time
 
@@ -196,14 +198,14 @@ def test_generate_transform_commands_required_input_fields(run_id, run_timestamp
         input_payload,
         extract_output_files,
     ) == {
-        "files-to-transform": [
+        "transform-commands": [
             {
                 "transform-command": [
                     (
                         "--input-file=s3://test-timdex-bucket/testsource/"
                         "testsource-2022-01-02-full-extracted-records-to-index.xml"
                     ),
-                    "--output-location=s3://test-timdex-bucket/dataset",
+                    "--output-dataset=s3://test-timdex-bucket/dataset",
                     "--source=testsource",
                     f"--run-id={run_id}",
                     f"--run-timestamp={run_timestamp}",
@@ -232,14 +234,14 @@ def test_generate_transform_commands_all_input_fields(run_id, run_timestamp):
         input_payload,
         extract_output_files,
     ) == {
-        "files-to-transform": [
+        "transform-commands": [
             {
                 "transform-command": [
                     (
                         "--input-file=s3://test-timdex-bucket/testsource/"
                         "testsource-2022-01-02-daily-extracted-records-to-index_01.xml"
                     ),
-                    "--output-location=s3://test-timdex-bucket/dataset",
+                    "--output-dataset=s3://test-timdex-bucket/dataset",
                     "--source=testsource",
                     f"--run-id={run_id}",
                     f"--run-timestamp={run_timestamp}",
@@ -251,7 +253,7 @@ def test_generate_transform_commands_all_input_fields(run_id, run_timestamp):
                         "--input-file=s3://test-timdex-bucket/testsource/"
                         "testsource-2022-01-02-daily-extracted-records-to-index_02.xml"
                     ),
-                    "--output-location=s3://test-timdex-bucket/dataset",
+                    "--output-dataset=s3://test-timdex-bucket/dataset",
                     "--source=testsource",
                     f"--run-id={run_id}",
                     f"--run-timestamp={run_timestamp}",
@@ -263,7 +265,7 @@ def test_generate_transform_commands_all_input_fields(run_id, run_timestamp):
                         "--input-file=s3://test-timdex-bucket/testsource/"
                         "testsource-2022-01-02-daily-extracted-records-to-delete.xml"
                     ),
-                    "--output-location=s3://test-timdex-bucket/dataset",
+                    "--output-dataset=s3://test-timdex-bucket/dataset",
                     "--source=testsource",
                     f"--run-id={run_id}",
                     f"--run-timestamp={run_timestamp}",
@@ -298,18 +300,47 @@ def test_transform_commands_source_with_exclusion_list(
         input_payload,
         extract_output_files,
     ) == {
-        "files-to-transform": [
+        "transform-commands": [
             {
                 "transform-command": [
                     (
                         "--input-file=s3://test-timdex-bucket/testsource/"
                         "testsource-2022-01-02-full-extracted-records-to-index.xml"
                     ),
-                    "--output-location=s3://test-timdex-bucket/dataset",
+                    "--output-dataset=s3://test-timdex-bucket/dataset",
                     "--source=testsource",
                     f"--run-id={run_id}",
                     f"--run-timestamp={run_timestamp}",
                     "--exclusion-list-path=s3://test-timdex-bucket/config/testsource/exclusions.csv",
+                ]
+            }
+        ]
+    }
+
+
+def test_transform_commands_patch_required_input_fields(run_id, run_timestamp):
+    event = {
+        "next-step": "transform",
+        "run-date": "2022-01-02T12:13:14Z",
+        "run-type": "patch",
+        "source": "testsource",
+        "run-id": run_id,
+        "run-timestamp": run_timestamp,
+        "patch": {"subset-type": "current-records"},
+    }
+    input_payload = InputPayload.from_event(event)
+    with patch("lambdas.format_input.TIMDEXDataset") as mock_dataset:
+        mock_dataset.return_value.conn.query.return_value.fetchone.return_value = (42,)
+        response = commands.generate_transform_commands(input_payload)
+    assert response == {
+        "transform-commands": [
+            {
+                "transform-command": [
+                    "--input-dataset=s3://test-timdex-bucket/dataset",
+                    "--output-dataset=s3://test-timdex-bucket/dataset",
+                    "--source=testsource",
+                    "--run-id=run-abc-123",
+                    "--run-timestamp=2025-06-18T12:34:56.789000",
                 ]
             }
         ]
