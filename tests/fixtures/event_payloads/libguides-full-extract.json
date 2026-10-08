@@ -9,5 +9,5 @@
     "https://libguides.mit.edu/sitemap.xml"
   ],
   "btrix-sitemap-urls-output-file": "s3://timdex-extract-dev-222053980223/libguides/last-sitemaps-urls.txt",
-  "btrix-args-json":"{\"--scopeType\":\"custom\",\"--include\":\".*libguides.mit.edu/(c.php\\?g=.*\\&p=.*)\"}"
+  "btrix-args-json": "{\"--scopeType\":\"custom\",\"--include\":\".*libguides.mit.edu/(c.php\\\\?g=.*&p=.*)\"}"
 }
