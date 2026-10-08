@@ -113,10 +113,14 @@ class InputPayload:
                         "required when 'run-type=daily'"
                     )
                     raise ValueError(message)
+                InputPayload.validate_json_object_field(input_data, "btrix-args-json")
             else:
                 missing_harvest_fields = set(
                     CONFIG.REQUIRED_OAI_HARVEST_FIELDS
                 ).difference(set(input_data.keys()))
+                InputPayload.validate_json_object_field(
+                    input_data, "oai-request-header-mixins"
+                )
 
             if missing_harvest_fields:
                 message = (
@@ -124,6 +128,21 @@ class InputPayload:
                     f"with harvest step. Missing fields: {list(missing_harvest_fields)}"
                 )
                 raise ValueError(message)
+
+    @staticmethod
+    def validate_json_object_field(input_data: dict, field: str) -> None:
+        """Validate that an optional field is, or parses to, a JSON object."""
+        if field not in input_data:
+            return
+        message = f"Field '{field}' must be a JSON object or JSON object string"
+        value = input_data[field]
+        if isinstance(value, str):
+            try:
+                value = json.loads(value)
+            except json.JSONDecodeError as exception:
+                raise ValueError(f"{message}: {exception}") from exception
+        if not isinstance(value, dict):
+            raise ValueError(message)  # noqa: TRY004
 
     @classmethod
     def from_event(cls, event: dict) -> "InputPayload":

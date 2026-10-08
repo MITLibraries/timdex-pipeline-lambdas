@@ -26,6 +26,7 @@ Takes input JSON (usually from EventBridge although it can be passed to a manual
 #### Optional Fields
 
 - `oai-set-spec`: optional, only used when limiting the OAI-PMH record harvest to a single set from the source repository.
+- `oai-request-header-mixins`: optional, a JSON object (or JSON object string) of custom headers to include in all HTTP requests to the `oai-pmh-host`, e.g. `{"X-Some-Header": "value"}`. Passed to the OAI-PMH harvester as `--request-header-mixins`.
 - `verbose`: optional, if provided with value `"true"` (case-insensitive) will pass the `--verbose` option (debug level logging) to all pipeline task run commands.
 - `run-id`: an ETL run id that gets included for CLI commands generated; minted if not provided
 - `run-timestamp`: an ETL timestamp that gets included for CLI commands generated; minted if not provided

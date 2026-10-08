@@ -1,3 +1,4 @@
+import json
 import logging
 import uuid
 from typing import TYPE_CHECKING
@@ -100,7 +101,7 @@ def _generate_browsertrix_harvester_extract_command(
         cmd.append(f"--previous-sitemap-urls-file={sitemap_urls_previous}")
 
     if btrix_args_json := input_payload.raw.get("btrix-args-json"):
-        cmd.append(f"""--btrix-args-json={btrix_args_json}""")
+        cmd.append(f"--btrix-args-json={_to_json_string(btrix_args_json)}")
 
     return cmd
 
@@ -114,9 +115,14 @@ def _generate_oai_harvester_extract_command(
         [
             f"--host={input_payload.raw['oai-pmh-host']}",
             f"--output-file={s3_output_uri}",
-            "harvest",
         ]
     )
+
+    # group-level option, must precede the 'harvest' subcommand
+    if header_mixins := input_payload.raw.get("oai-request-header-mixins"):
+        cmd.append(f"--request-header-mixins={_to_json_string(header_mixins)}")
+
+    cmd.append("harvest")
 
     if input_payload.source == "aspace":
         cmd.append("--method=get")
@@ -132,6 +138,11 @@ def _generate_oai_harvester_extract_command(
         cmd.append(f"--set-spec={set_spec}")
 
     return cmd
+
+
+def _to_json_string(value: dict | str) -> str:
+    """Serialize a JSON object payload value, passing strings through as-is."""
+    return json.dumps(value) if isinstance(value, dict) else value
 
 
 def generate_transform_commands(
