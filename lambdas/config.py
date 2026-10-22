@@ -26,7 +26,6 @@ class Config:
         ],
         "use": [
             "aspace",
-            "digitalcollections",
             "dspace",
             *list(GIS_SOURCES),
             "libguides",
