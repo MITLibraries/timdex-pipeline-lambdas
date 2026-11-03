@@ -1,5 +1,3 @@
-# ruff: noqa: S608
-
 import json
 import logging
 import uuid
@@ -138,10 +136,15 @@ class InputPayload:
                 if "patch" not in input_data:
                     raise ValueError("Field 'patch' required when 'run-type=patch'")
 
+                # validate JSON object or string in 'patch' field
+                InputPayload.validate_json_object_field(input_data, "patch")
+                if isinstance(input_data["patch"], str):
+                    input_data["patch"] = json.loads(input_data["patch"])
+
+                # check for required fields in 'patch'
                 missing_transform_fields = set(
                     CONFIG.REQUIRED_PATCH_TRANSFORM_FIELDS
                 ).difference(set(input_data["patch"].keys()))
-
                 if missing_transform_fields:
                     message = (
                         "Input must include all required patch fields when "
@@ -149,7 +152,6 @@ class InputPayload:
                         f"{list(missing_transform_fields)}"
                     )
                     raise ValueError(message)
-                InputPayload.validate_json_object_field(input_data, "patch")
 
     @staticmethod
     def validate_json_object_field(input_data: dict, field: str) -> None:
@@ -319,12 +321,15 @@ def handle_transform(input_payload: InputPayload, result: ResultPayload) -> Resu
         td = TIMDEXDataset(location=CONFIG.s3_timdex_dataset_location)
 
         if input_payload.raw["patch"]["subset-type"] == "current-records":
-            record_count = td.conn.query(f"""
+            record_count = td.conn.query(
+                """
                 select count(*)
                 from metadata.current_records
-                where source = '{input_payload.source}'
+                where source = ?
                 and action in ('index')
-                """).fetchone()[0]
+                """,
+                params=[input_payload.source],
+            ).fetchone()[0]
         else:
             raise ValueError(
                 "Cannot generate transform command for unsupported "
@@ -439,12 +444,15 @@ def handle_embeddings_create(
 
     # retrieve records count for run
     td = TIMDEXDataset(location=CONFIG.s3_timdex_dataset_location)
-    record_count = td.conn.query(f"""
+    record_count = td.conn.query(
+        """
         select count(*)
         from metadata.records
-        where run_id = '{input_payload.run_id}'
+        where run_id = ?
         and action in ('index')
-        """).fetchone()[0]
+        """,
+        params=[input_payload.run_id],
+    ).fetchone()[0]
 
     # exit early if no records to create embeddings for
     if record_count == 0:
@@ -489,11 +497,14 @@ def handle_embeddings_load(
 
     # retrieve embeddings count for run
     td = TIMDEXDataset(location=CONFIG.s3_timdex_dataset_location)
-    embeddings_count = td.conn.query(f"""
+    embeddings_count = td.conn.query(
+        """
         select count(*)
         from metadata.current_run_embeddings
-        where run_id = '{input_payload.run_id}'
-    """).fetchone()[0]
+        where run_id = ?
+        """,
+        params=[input_payload.run_id],
+    ).fetchone()[0]
 
     # exit early if no embeddings to load
     if embeddings_count == 0:
@@ -527,12 +538,15 @@ def handle_fulltexts_harvest(
 
     # retrieve records count for run
     td = TIMDEXDataset(location=CONFIG.s3_timdex_dataset_location)
-    record_count = td.conn.query(f"""
+    record_count = td.conn.query(
+        """
         select count(*)
         from metadata.records
-        where run_id = '{input_payload.run_id}'
+        where run_id = ?
         and action in ('index')
-        """).fetchone()[0]
+        """,
+        params=[input_payload.run_id],
+    ).fetchone()[0]
 
     # exit early if no records to harvest fulltext for
     if record_count == 0:
@@ -559,11 +573,14 @@ def handle_fulltexts_load(
 
     # retrieve fulltexts count for run
     td = TIMDEXDataset(location=CONFIG.s3_timdex_dataset_location)
-    fulltexts_count = td.conn.query(f"""
-            select count(*)
-            from metadata.current_run_fulltexts
-            where run_id = '{input_payload.run_id}'
-        """).fetchone()[0]
+    fulltexts_count = td.conn.query(
+        """
+        select count(*)
+        from metadata.current_run_fulltexts
+        where run_id = ?
+        """,
+        params=[input_payload.run_id],
+    ).fetchone()[0]
 
     # exit early if no fulltexts to load
     if fulltexts_count == 0:

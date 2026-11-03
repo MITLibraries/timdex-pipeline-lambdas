@@ -199,7 +199,7 @@ def generate_load_commands(input_payload: "InputPayload") -> dict:
         input_payload.run_id,
     ]
 
-    if input_payload.run_type == "daily":
+    if input_payload.run_type in ["daily", "patch"]:
         update_command.extend(
             [
                 "--source",
