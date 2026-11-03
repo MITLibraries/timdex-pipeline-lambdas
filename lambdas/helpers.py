@@ -1,5 +1,3 @@
-# ruff: noqa: S608
-
 import contextlib
 import logging
 from datetime import UTC, datetime, timedelta
@@ -143,12 +141,15 @@ def dataset_records_exist_for_run(run_id: str) -> bool:
     """
     td = TIMDEXDataset(location=CONFIG.s3_timdex_dataset_location)
 
-    etl_run_count = td.conn.query(f"""
+    etl_run_count = td.conn.query(
+        """
         select count(*)
         from metadata.records
-        where run_id = '{run_id}'
+        where run_id = ?
         and action in ('index','delete')
-        """).fetchone()[0]
+        """,
+        params=[run_id],
+    ).fetchone()[0]
     return etl_run_count > 0
 
 
@@ -160,36 +161,39 @@ def get_run_metrics(run_id: str) -> dict:
 
     # get record metrics
     records_count = td.conn.query(
-        f"""
+        """
         select
             count(*)
         from metadata.records
-        where run_id='{run_id}'
-        ;"""
+        where run_id = ?
+        ;""",
+        params=[run_id],
     ).fetchone()[0]
 
     actions_count = pd.DataFrame()
     if records_count > 0:
         actions_count = td.conn.query(
-            f"""
+            """
             select
                 action,
                 count(*) as action_count
             from metadata.records
-            where run_id='{run_id}'
+            where run_id = ?
             group by all
-            ;"""
+            ;""",
+            params=[run_id],
         ).to_df()
 
     # embeddings
     try:
         embeddings_count = td.conn.query(
-            f"""
+            """
             select
                 count(*)
             from metadata.current_run_embeddings
-            where run_id='{run_id}'
-            ;"""
+            where run_id = ?
+            ;""",
+            params=[run_id],
         ).fetchone()[0]
     except CatalogException as exception:
         logger.warning(exception)
@@ -198,12 +202,13 @@ def get_run_metrics(run_id: str) -> dict:
     # fulltexts
     try:
         fulltexts_count = td.conn.query(
-            f"""
+            """
             select
                 count(*)
             from metadata.current_run_fulltexts
-            where run_id='{run_id}'
-            ;"""
+            where run_id = ?
+            ;""",
+            params=[run_id],
         ).fetchone()[0]
     except CatalogException as exception:
         logger.warning(exception)

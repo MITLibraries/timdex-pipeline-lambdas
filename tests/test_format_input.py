@@ -137,14 +137,14 @@ def test_lambda_handler_with_next_step_transform_files_present(s3_client, run_ti
         "verbose": True,
         "next-step": "load",
         "transform": {
-            "files-to-transform": [
+            "transform-commands": [
                 {
                     "transform-command": [
                         (
                             "--input-file=s3://test-timdex-bucket/testsource/"
                             "testsource-2022-01-02-daily-extracted-records-to-index.xml"
                         ),
-                        "--output-location=s3://test-timdex-bucket/dataset",
+                        "--output-dataset=s3://test-timdex-bucket/dataset",
                         "--source=testsource",
                         "--run-id=run-abc-123",
                         f"--run-timestamp={run_timestamp}",
@@ -173,14 +173,14 @@ def test_lambda_handler_with_next_step_transform_alma_files_present(run_timestam
         "verbose": False,
         "next-step": "load",
         "transform": {
-            "files-to-transform": [
+            "transform-commands": [
                 {
                     "transform-command": [
                         (
                             "--input-file=s3://test-timdex-bucket/alma/"
                             "alma-2022-09-12-daily-extracted-records-to-delete.xml"
                         ),
-                        "--output-location=s3://test-timdex-bucket/dataset",
+                        "--output-dataset=s3://test-timdex-bucket/dataset",
                         "--source=alma",
                         "--run-id=run-abc-123",
                         f"--run-timestamp={run_timestamp}",
@@ -192,7 +192,7 @@ def test_lambda_handler_with_next_step_transform_alma_files_present(run_timestam
                             "--input-file=s3://test-timdex-bucket/alma/"
                             "alma-2022-09-12-daily-extracted-records-to-index_01.xml"
                         ),
-                        "--output-location=s3://test-timdex-bucket/dataset",
+                        "--output-dataset=s3://test-timdex-bucket/dataset",
                         "--source=alma",
                         "--run-id=run-abc-123",
                         f"--run-timestamp={run_timestamp}",
@@ -204,7 +204,7 @@ def test_lambda_handler_with_next_step_transform_alma_files_present(run_timestam
                             "--input-file=s3://test-timdex-bucket/alma/"
                             "alma-2022-09-12-daily-extracted-records-to-index_02.xml"
                         ),
-                        "--output-location=s3://test-timdex-bucket/dataset",
+                        "--output-dataset=s3://test-timdex-bucket/dataset",
                         "--source=alma",
                         "--run-id=run-abc-123",
                         f"--run-timestamp={run_timestamp}",
@@ -246,14 +246,14 @@ def test_lambda_handler_with_next_step_transform_auto_generated_timestamp(s3_cli
         "verbose": True,
         "next-step": "load",
         "transform": {
-            "files-to-transform": [
+            "transform-commands": [
                 {
                     "transform-command": [
                         (
                             "--input-file=s3://test-timdex-bucket/testsource/"
                             "testsource-2022-01-02-daily-extracted-records-to-index.xml"
                         ),
-                        "--output-location=s3://test-timdex-bucket/dataset",
+                        "--output-dataset=s3://test-timdex-bucket/dataset",
                         "--source=testsource",
                         "--run-id=run-abc-123",
                         "--run-timestamp=2025-06-18T12:34:56.789000",
@@ -320,6 +320,43 @@ def test_lambda_handler_with_next_step_transform_no_files_present_daily():
         "source": "testsource",
         "verbose": False,
         "message": "There were no daily new/updated/deleted records to harvest.",
+    }
+
+
+def test_lambda_handler_with_next_step_transform_patch(run_timestamp):
+    event = {
+        "run-date": "2022-01-02T12:13:14Z",
+        "run-type": "patch",
+        "next-step": "transform",
+        "source": "testsource",
+        "run-id": "run-abc-123",
+        "run-timestamp": run_timestamp,
+        "patch": {"subset-type": "current-records"},
+    }
+    with patch("lambdas.format_input.TIMDEXDataset") as mock_dataset:
+        mock_dataset.return_value.conn.query.return_value.fetchone.return_value = (42,)
+        response = format_input.lambda_handler(event, {})
+    assert response == {
+        "next-step": "load",
+        "run-date": "2022-01-02",
+        "run-type": "patch",
+        "run-id": "run-abc-123",
+        "source": "testsource",
+        "verbose": False,
+        "transform": {
+            "transform-commands": [
+                {
+                    "transform-command": [
+                        "--input-dataset=s3://test-timdex-bucket/dataset",
+                        "--output-dataset=s3://test-timdex-bucket/dataset",
+                        "--source=testsource",
+                        "--run-id=run-abc-123",
+                        f"--run-timestamp={run_timestamp}",
+                    ]
+                }
+            ]
+        },
+        "patch": {"subset-type": "current-records"},
     }
 
 
