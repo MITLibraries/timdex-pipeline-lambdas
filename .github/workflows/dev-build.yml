@@ -14,7 +14,7 @@ permissions:
 jobs:
   build-push:
     name: Dev Build and Push
-    uses: mitlibraries/.github/.github/workflows/ecr-multi-arch-deploy-dev.yml@main
+    uses: mitlibraries/.github/.github/workflows/ecr-multi-arch-deploy-dev.yml@in-1870-fix-docker-build
     secrets: inherit
     with:
       AWS_REGION: us-east-1
