@@ -1,5 +1,3 @@
-# ruff: noqa: S608
-
 import json
 import logging
 import uuid
@@ -45,7 +43,7 @@ ENRICHMENT_STEPS = {
 @dataclass
 class InputPayload:
     run_date: str
-    run_type: Literal["daily", "full"]
+    run_type: Literal["daily", "full", "patch"]
     source: str
     next_step: NextStep
     run_id: str
@@ -90,7 +88,6 @@ class InputPayload:
         # If next step is extract step, required harvester fields are present
         if input_data["next-step"] == "extract":
             missing_harvest_fields = None
-
             harvester_type = None
             for configured_harvester_type, sources in CONFIG.SOURCE_HARVESTER.items():
                 if input_data["source"] in sources:
@@ -128,6 +125,28 @@ class InputPayload:
                     f"with harvest step. Missing fields: {list(missing_harvest_fields)}"
                 )
                 raise ValueError(message)
+
+        # If next step is transform step and run type is patch
+        # required patch transform fields are present
+        if input_data["next-step"] == "transform" and input_data["run-type"] == "patch":
+            if not (patch := input_data.get("patch")):
+                raise ValueError("Field 'patch' required when 'run-type=patch'")
+
+            strategy = patch.get("strategy")
+            if strategy not in CONFIG.REQUIRED_PATCH_STRATEGY_FIELDS:
+                raise ValueError(
+                    "'patch.strategy' must be one of: "
+                    f"{list(CONFIG.REQUIRED_PATCH_STRATEGY_FIELDS)}. Value provided was "
+                    f"'{strategy}'"
+                )
+
+            if missing := set(CONFIG.REQUIRED_PATCH_STRATEGY_FIELDS[strategy]).difference(
+                patch
+            ):
+                raise ValueError(
+                    "Input must include all required patch fields for strategy "
+                    f"'{strategy}'. Missing fields: {list(missing)}"
+                )
 
     @staticmethod
     def validate_json_object_field(input_data: dict, field: str) -> None:
@@ -184,6 +203,7 @@ class ResultPayload:
     load: dict | None = None
     enrichments: dict | None = None
     embeddings: dict | None = None
+    patch: dict | None = None
     fulltexts: dict | None = None
     metrics: dict | None = None
     message: str | list | None = None
@@ -198,6 +218,7 @@ class ResultPayload:
             source=input_payload.source,
             verbose=input_payload.verbose,
             enrichments=deepcopy(input_payload.raw.get("enrichments")),
+            patch=deepcopy(input_payload.raw.get("patch")),
         )
 
     def to_dict(self) -> dict:
@@ -252,41 +273,73 @@ def handle_extract(input_payload: InputPayload, result: ResultPayload) -> Result
 
 def handle_transform(input_payload: InputPayload, result: ResultPayload) -> ResultPayload:
     result.next_step = "load"
-    try:
-        if input_payload.source == "alma":
-            alma_prep.prepare_alma_export_files(input_payload)
-        extract_output_files = helpers.list_s3_files_by_prefix(
-            CONFIG.timdex_bucket,
-            helpers.generate_step_output_prefix(
-                input_payload,
-                "extract",
-            ),
-        )
-    except errors.NoFilesError:
-        if input_payload.source == "alma" or input_payload.run_type == "full":
-            result.next_step = "exit-error"
-            message = (
-                "There were no transformed files present in the TIMDEX S3 bucket "
-                "for the provided date and source, something likely went wrong."
+
+    if input_payload.run_type in ["full", "daily"]:
+        try:
+            if input_payload.source == "alma":
+                alma_prep.prepare_alma_export_files(input_payload)
+            extract_output_files = helpers.list_s3_files_by_prefix(
+                CONFIG.timdex_bucket,
+                helpers.generate_step_output_prefix(
+                    input_payload,
+                    "extract",
+                ),
             )
-            result.message = message
-            logger.error(message)  # noqa: TRY400
-        elif input_payload.run_type == "daily":
-            result.next_step = "exit-ok"
-            message = "There were no daily new/updated/deleted records to harvest."
-            logger.info(message)
-            result.message = message
-        return result
-    logger.info(
-        "%s extracted files found in TIMDEX S3 bucket for date '%s' and source '%s'",
-        len(extract_output_files),
-        input_payload.run_date,
-        input_payload.source,
-    )
-    result.transform = commands.generate_transform_commands(
-        input_payload,
-        extract_output_files,
-    )
+        except errors.NoFilesError:
+            if input_payload.source == "alma" or input_payload.run_type == "full":
+                result.next_step = "exit-error"
+                message = (
+                    "There were no transformed files present in the TIMDEX S3 bucket "
+                    "for the provided date and source, something likely went wrong."
+                )
+                result.message = message
+                logger.error(message)  # noqa: TRY400
+            elif input_payload.run_type == "daily":
+                result.next_step = "exit-ok"
+                message = "There were no daily new/updated/deleted records to harvest."
+                logger.info(message)
+                result.message = message
+            return result
+        logger.info(
+            "%s extracted files found in TIMDEX S3 bucket for date '%s' and source '%s'",
+            len(extract_output_files),
+            input_payload.run_date,
+            input_payload.source,
+        )
+        result.transform = commands.generate_transform_commands(
+            input_payload,
+            extract_output_files,
+        )
+    elif input_payload.run_type == "patch":
+        if input_payload.raw["patch"]["strategy"] == "timdex-dataset":
+            td = TIMDEXDataset(location=CONFIG.s3_timdex_dataset_location)
+            record_count = td.conn.query(
+                """
+                select count(*)
+                from metadata.current_records
+                where source = ?
+                and action in ('index')
+                """,
+                params=[input_payload.source],
+            ).fetchone()[0]
+
+            if record_count == 0:
+                result.next_step = "exit-ok"
+                result.message = (
+                    f"No current records found for source '{input_payload.source}', "
+                    "no records to patch"
+                )
+                return result
+        elif input_payload.raw["patch"]["strategy"] == "parquet":
+            raise NotImplementedError
+        else:
+            raise ValueError(
+                "Cannot generate transform command with the following 'patch' configs: "
+                f"'{json.dumps(input_payload.raw['patch'])}'"
+            )
+
+        result.transform = commands.generate_transform_commands(input_payload)
+
     return result
 
 
@@ -380,12 +433,15 @@ def handle_embeddings_create(
 
     # retrieve records count for run
     td = TIMDEXDataset(location=CONFIG.s3_timdex_dataset_location)
-    record_count = td.conn.query(f"""
+    record_count = td.conn.query(
+        """
         select count(*)
         from metadata.records
-        where run_id = '{input_payload.run_id}'
+        where run_id = ?
         and action in ('index')
-        """).fetchone()[0]
+        """,
+        params=[input_payload.run_id],
+    ).fetchone()[0]
 
     # exit early if no records to create embeddings for
     if record_count == 0:
@@ -430,11 +486,14 @@ def handle_embeddings_load(
 
     # retrieve embeddings count for run
     td = TIMDEXDataset(location=CONFIG.s3_timdex_dataset_location)
-    embeddings_count = td.conn.query(f"""
+    embeddings_count = td.conn.query(
+        """
         select count(*)
         from metadata.current_run_embeddings
-        where run_id = '{input_payload.run_id}'
-    """).fetchone()[0]
+        where run_id = ?
+        """,
+        params=[input_payload.run_id],
+    ).fetchone()[0]
 
     # exit early if no embeddings to load
     if embeddings_count == 0:
@@ -468,12 +527,15 @@ def handle_fulltexts_harvest(
 
     # retrieve records count for run
     td = TIMDEXDataset(location=CONFIG.s3_timdex_dataset_location)
-    record_count = td.conn.query(f"""
+    record_count = td.conn.query(
+        """
         select count(*)
         from metadata.records
-        where run_id = '{input_payload.run_id}'
+        where run_id = ?
         and action in ('index')
-        """).fetchone()[0]
+        """,
+        params=[input_payload.run_id],
+    ).fetchone()[0]
 
     # exit early if no records to harvest fulltext for
     if record_count == 0:
@@ -500,11 +562,14 @@ def handle_fulltexts_load(
 
     # retrieve fulltexts count for run
     td = TIMDEXDataset(location=CONFIG.s3_timdex_dataset_location)
-    fulltexts_count = td.conn.query(f"""
-            select count(*)
-            from metadata.current_run_fulltexts
-            where run_id = '{input_payload.run_id}'
-        """).fetchone()[0]
+    fulltexts_count = td.conn.query(
+        """
+        select count(*)
+        from metadata.current_run_fulltexts
+        where run_id = ?
+        """,
+        params=[input_payload.run_id],
+    ).fetchone()[0]
 
     # exit early if no fulltexts to load
     if fulltexts_count == 0:
