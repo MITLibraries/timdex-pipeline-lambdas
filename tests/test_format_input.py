@@ -148,6 +148,7 @@ def test_lambda_handler_with_next_step_transform_files_present(s3_client, run_ti
                         "--source=testsource",
                         "--run-id=run-abc-123",
                         f"--run-timestamp={run_timestamp}",
+                        "--workers=15",
                     ]
                 }
             ]
@@ -184,6 +185,7 @@ def test_lambda_handler_with_next_step_transform_alma_files_present(run_timestam
                         "--source=alma",
                         "--run-id=run-abc-123",
                         f"--run-timestamp={run_timestamp}",
+                        "--workers=15",
                     ]
                 },
                 {
@@ -196,6 +198,7 @@ def test_lambda_handler_with_next_step_transform_alma_files_present(run_timestam
                         "--source=alma",
                         "--run-id=run-abc-123",
                         f"--run-timestamp={run_timestamp}",
+                        "--workers=15",
                     ]
                 },
                 {
@@ -208,6 +211,7 @@ def test_lambda_handler_with_next_step_transform_alma_files_present(run_timestam
                         "--source=alma",
                         "--run-id=run-abc-123",
                         f"--run-timestamp={run_timestamp}",
+                        "--workers=15",
                     ]
                 },
             ]
@@ -257,6 +261,7 @@ def test_lambda_handler_with_next_step_transform_auto_generated_timestamp(s3_cli
                         "--source=testsource",
                         "--run-id=run-abc-123",
                         "--run-timestamp=2025-06-18T12:34:56.789000",
+                        "--workers=15",
                     ]
                 }
             ]
@@ -352,6 +357,7 @@ def test_lambda_handler_with_next_step_transform_patch(run_timestamp):
                         "--source=testsource",
                         "--run-id=run-abc-123",
                         f"--run-timestamp={run_timestamp}",
+                        "--workers=15",
                     ]
                 }
             ]

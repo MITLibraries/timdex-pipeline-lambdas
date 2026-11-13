@@ -209,6 +209,7 @@ def test_generate_transform_commands_required_input_fields(run_id, run_timestamp
                     "--source=testsource",
                     f"--run-id={run_id}",
                     f"--run-timestamp={run_timestamp}",
+                    "--workers=15",
                 ]
             }
         ]
@@ -245,6 +246,7 @@ def test_generate_transform_commands_all_input_fields(run_id, run_timestamp):
                     "--source=testsource",
                     f"--run-id={run_id}",
                     f"--run-timestamp={run_timestamp}",
+                    "--workers=15",
                 ]
             },
             {
@@ -257,6 +259,7 @@ def test_generate_transform_commands_all_input_fields(run_id, run_timestamp):
                     "--source=testsource",
                     f"--run-id={run_id}",
                     f"--run-timestamp={run_timestamp}",
+                    "--workers=15",
                 ]
             },
             {
@@ -269,6 +272,7 @@ def test_generate_transform_commands_all_input_fields(run_id, run_timestamp):
                     "--source=testsource",
                     f"--run-id={run_id}",
                     f"--run-timestamp={run_timestamp}",
+                    "--workers=15",
                 ]
             },
         ]
@@ -311,6 +315,7 @@ def test_transform_commands_source_with_exclusion_list(
                     "--source=testsource",
                     f"--run-id={run_id}",
                     f"--run-timestamp={run_timestamp}",
+                    "--workers=15",
                     "--exclusion-list-path=s3://test-timdex-bucket/config/testsource/exclusions.csv",
                 ]
             }
@@ -341,6 +346,7 @@ def test_transform_commands_patch_required_input_fields(run_id, run_timestamp):
                     "--source=testsource",
                     "--run-id=run-abc-123",
                     "--run-timestamp=2025-06-18T12:34:56.789000",
+                    "--workers=15",
                 ]
             }
         ]

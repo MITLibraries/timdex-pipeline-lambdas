@@ -151,6 +151,10 @@ def generate_transform_commands(
     """Generate task run commands for TIMDEX transform."""
     transform_commands: list[dict] = []
 
+    # default to 15 parallel workers, leveraging the default 16 vCPU cores defined by
+    # the ECS task definition
+    parallel_transform_workers = 15
+
     if input_payload.run_type not in ["full", "daily", "patch"]:
         raise ValueError(
             "Cannot generate transform command for unsupported 'run-type': "
@@ -170,6 +174,7 @@ def generate_transform_commands(
                 f"--source={input_payload.source}",
                 f"--run-id={input_payload.run_id}",
                 f"--run-timestamp={input_payload.run_timestamp}",
+                f"--workers={parallel_transform_workers}",
             ]
             if input_payload.source in CONFIG.source_exclusion_lists:
                 transform_command.append(
@@ -183,6 +188,7 @@ def generate_transform_commands(
             f"--source={input_payload.source}",
             f"--run-id={input_payload.run_id}",
             f"--run-timestamp={input_payload.run_timestamp}",
+            f"--workers={parallel_transform_workers}",
         ]
         transform_commands.append({"transform-command": transform_command})
 
