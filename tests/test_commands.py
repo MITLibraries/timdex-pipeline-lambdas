@@ -326,7 +326,7 @@ def test_transform_commands_patch_required_input_fields(run_id, run_timestamp):
         "source": "testsource",
         "run-id": run_id,
         "run-timestamp": run_timestamp,
-        "patch": {"strategy": "timdex-dataset", "table": "current-records"},
+        "patch": {"strategy": "timdex-dataset"},
     }
     input_payload = InputPayload.from_event(event)
     with patch("lambdas.format_input.TIMDEXDataset") as mock_dataset:

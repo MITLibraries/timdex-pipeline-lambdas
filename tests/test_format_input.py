@@ -331,7 +331,7 @@ def test_lambda_handler_with_next_step_transform_patch(run_timestamp):
         "source": "testsource",
         "run-id": "run-abc-123",
         "run-timestamp": run_timestamp,
-        "patch": {"strategy": "timdex-dataset", "table": "current-records"},
+        "patch": {"strategy": "timdex-dataset"},
     }
     with patch("lambdas.format_input.TIMDEXDataset") as mock_dataset:
         mock_dataset.return_value.conn.query.return_value.fetchone.return_value = (42,)
@@ -356,7 +356,7 @@ def test_lambda_handler_with_next_step_transform_patch(run_timestamp):
                 }
             ]
         },
-        "patch": {"strategy": "timdex-dataset", "table": "current-records"},
+        "patch": {"strategy": "timdex-dataset"},
     }
 
 

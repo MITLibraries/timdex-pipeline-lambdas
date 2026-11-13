@@ -41,7 +41,7 @@ class Config:
         "btrix-sitemap-urls-output-file",
     )
     REQUIRED_PATCH_STRATEGY_FIELDS: ClassVar[dict[str, tuple]] = {
-        "timdex-dataset": ("table",),
+        "timdex-dataset": (),
         "parquet": ("location",),
     }
     SOURCE_EXCLUSION_LISTS: ClassVar[dict[str, str]] = {}

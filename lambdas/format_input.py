@@ -311,10 +311,7 @@ def handle_transform(input_payload: InputPayload, result: ResultPayload) -> Resu
             extract_output_files,
         )
     elif input_payload.run_type == "patch":
-        if (
-            input_payload.raw["patch"]["strategy"] == "timdex-dataset"
-            and input_payload.raw["patch"]["table"] == "current-records"
-        ):
+        if input_payload.raw["patch"]["strategy"] == "timdex-dataset":
             td = TIMDEXDataset(location=CONFIG.s3_timdex_dataset_location)
             record_count = td.conn.query(
                 """
